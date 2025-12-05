@@ -5,7 +5,6 @@ from src.models.db import Schedule as ScheduleModel
 
 
 class ScheduleManager:
-    
     def __init__(self, session: Session) -> None:
         self.session = session
 
@@ -64,7 +63,9 @@ class ScheduleManager:
         )
         return self.session.exec(statement).first()
 
-    def list_schedules(self, tenant_id: str, is_active: Optional[bool] = None) -> List[ScheduleModel]:
+    def list_schedules(
+        self, tenant_id: str, is_active: Optional[bool] = None
+    ) -> List[ScheduleModel]:
         """
         List schedules for a tenant
 
@@ -183,7 +184,9 @@ class ScheduleManager:
         self.session.refresh(schedule_obj)
         return schedule_obj
 
-    def toggle_schedule(self, schedule_id: int, tenant_id: str) -> Optional[ScheduleModel]:
+    def toggle_schedule(
+        self, schedule_id: int, tenant_id: str
+    ) -> Optional[ScheduleModel]:
         """
         Toggle active status of a schedule
 

@@ -12,11 +12,11 @@ from src.models.db import Session as UserSession
 from src.models.db import User
 
 
-
 DATABASE_URL = os.environ["DATABASE_URL"]
 engine = create_engine(DATABASE_URL)
 session = Session(engine)
 logger = logging.getLogger(__name__)
+
 
 class SQLAlchemySessionMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: FastAPI, db_session_factory: Session):
@@ -53,7 +53,6 @@ class ResponseTimeLoggingMiddleware(BaseHTTPMiddleware):
         response.headers["X-Process-Time"] = str(process_time)
 
         return response
-    
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -72,7 +71,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         token = request.headers.get("X-Session-Token")
 
         if not token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session token required")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session token required",
+            )
 
         try:
             statement = select(UserSession).where(UserSession.token == token)
@@ -85,7 +87,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
             request.state.tenant_id = user.tenant_id
 
         except Exception:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Session token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Session token"
+            )
 
         response = await call_next(request)
         return response
