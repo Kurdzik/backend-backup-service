@@ -20,11 +20,25 @@ class QdrantBackupManager(BaseBackupManager):
         super().__init__(credentials)
 
         if credentials.api_key:
-            self.client = QdrantClient(url=credentials.url, api_key=credentials.api_key)
+            self.client = QdrantClient(url=credentials.url, api_key=credentials.api_key, timeout=36000)
         elif credentials.login and credentials.password:
-            self.client = QdrantClient(url=credentials.url, api_key=credentials.login)
+            self.client = QdrantClient(url=credentials.url, api_key=credentials.login, timeout=36000)
         else:
-            self.client = QdrantClient(url=credentials.url)
+            self.client = QdrantClient(url=credentials.url, timeout=36000)
+
+    def test_connection(self) -> bool:
+        """Test whether the Qdrant instance is reachable
+        
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            # Attempt to get collections to verify connectivity
+            self.client.get_collections()
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False
 
     def create_backup(self) -> str:
         """Create backup of all Qdrant collections
@@ -46,12 +60,23 @@ class QdrantBackupManager(BaseBackupManager):
                 collection_name = collection.name
                 collection_info = self.client.get_collection(collection_name)
 
+                # Properly serialize vector config
+                vectors_config = collection_info.config.params.vectors
+                if hasattr(vectors_config, "model_dump"):
+                    vectors_dict = vectors_config.model_dump()
+                elif hasattr(vectors_config, "dict"):
+                    vectors_dict = vectors_config.dict()
+                else:
+                    # Fallback: extract key attributes
+                    vectors_dict = {
+                        "size": vectors_config.size,
+                        "distance": str(vectors_config.distance),
+                    }
+
                 collection_data = {
                     "name": collection_name,
                     "config": {
-                        "vectors": collection_info.config.params.vectors.to_dict()
-                        if hasattr(collection_info.config.params.vectors, "to_dict")
-                        else str(collection_info.config.params.vectors),
+                        "vectors": vectors_dict,
                         "shard_number": collection_info.config.params.shard_number,
                         "replication_factor": collection_info.config.params.replication_factor,
                     },
@@ -112,7 +137,6 @@ class QdrantBackupManager(BaseBackupManager):
 
         Args:
             backup_path: Path to the backup tar.gz file
-            backup_destination: Qdrant instance URL to restore to (optional, uses current client if not provided)
         """
         temp_dir = tempfile.mkdtemp()
 
@@ -141,29 +165,48 @@ class QdrantBackupManager(BaseBackupManager):
                 except Exception:
                     pass
 
+                # Reconstruct vector config
+                vectors_config_data = config["vectors"]
+                
+                # Extract size and distance from the saved config
+                size = vectors_config_data.get("size")
+                distance_str = vectors_config_data.get("distance", "Cosine")
+                
+                # Parse distance enum
+                if isinstance(distance_str, str):
+                    distance_str = distance_str.split(".")[-1]  # Handle "Distance.COSINE" format
+                    distance = Distance[distance_str.upper()] if distance_str else Distance.COSINE
+                else:
+                    distance = distance_str
+
                 # Create collection with config
                 self.client.create_collection(
                     collection_name=collection_name,
                     vectors_config=VectorParams(
-                        size=config["vectors"]["size"], distance=Distance.COSINE
+                        size=size,
+                        distance=distance
                     ),
                 )
 
-                # Restore points
+                # Restore points in batches
                 if points:
-                    point_structs = []
-                    for point in points:
-                        point_structs.append(
-                            PointStruct(
-                                id=point["id"],
-                                vector=point["vector"],
-                                payload=point.get("payload", {}),
+                    batch_size = 500  # Adjust if needed
+                    for i in range(0, len(points), batch_size):
+                        batch = points[i:i + batch_size]
+                        point_structs = []
+                        for point in batch:
+                            point_structs.append(
+                                PointStruct(
+                                    id=point["id"],
+                                    vector=point["vector"],
+                                    payload=point.get("payload", {}),
+                                )
                             )
+                        
+                        self.client.upsert(
+                            collection_name=collection_name, points=point_structs
                         )
-
-                    self.client.upsert(
-                        collection_name=collection_name, points=point_structs
-                    )
+                        print(f"Restored {min(i + batch_size, len(points))}/{len(points)} points for {collection_name}")
 
         finally:
             # Cleanup temporary directory
@@ -173,17 +216,3 @@ class QdrantBackupManager(BaseBackupManager):
                 for dir_name in dirs:
                     os.rmdir(os.path.join(root, dir_name))
             os.rmdir(temp_dir)
-
-    def test_connection(self) -> bool:
-        """Test whether the Qdrant instance is reachable
-        
-        Returns:
-            bool: True if connection is successful, False otherwise
-        """
-        try:
-            # Attempt to get collections to verify connectivity
-            self.client.get_collections()
-            return True
-        except Exception as e:
-            print(f"Connection test failed: {str(e)}")
-            return False
