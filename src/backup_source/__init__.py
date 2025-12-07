@@ -3,7 +3,7 @@ from src.backup_source.postgres import PostgresBackupManager
 from src.backup_source.qdrant import QdrantBackupManager
 from src.backup_source.vault import VaultBackupManager
 from typing import Literal
-from src.base import Credentials
+from src.base import Credentials, BaseBackupManager
 
 
 class BackupManager:
@@ -12,12 +12,12 @@ class BackupManager:
 
     def create_from_type(
         self, source_type: Literal["vault", "qdrant", "postgres", "elasticsearch"]
-    ):
+    ) -> BaseBackupManager:
         map_ = {
-            "vault": VaultBackupManager(self.credentials),
-            "qdrant": QdrantBackupManager(self.credentials),
-            "postgres": PostgresBackupManager(self.credentials),
-            "elasticsearch": ElasticsearchBackupManager(self.credentials),
+            "vault": VaultBackupManager,
+            "qdrant": QdrantBackupManager,
+            "postgres": PostgresBackupManager,
+            "elasticsearch": ElasticsearchBackupManager,
         }
 
-        return map_[source_type]
+        return map_[source_type](self.credentials)

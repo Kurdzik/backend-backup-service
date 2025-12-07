@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends, Query
 from src.utils import get_user_info, get_db_session, UserInfo
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, Union
+from typing import Optional, Literal, Union, Any
 from sqlalchemy import create_engine
 from sqlmodel import Session, select, and_
 from src.models.db import User, Source, Destination
@@ -33,7 +33,7 @@ app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)
 
 class ApiResponse(BaseModel):
     message: str
-    data: dict[str, Union[str, float, int]] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 # =========== USER MANAGEMENT ===========
@@ -162,12 +162,8 @@ def reset_password(request: ResetPasswordRequest,     db_session: Session = Depe
 
 class AddBackupSourceRequest(BaseModel):
     source_type: Literal["vault", "qdrant", "postgres", "elasticsearch"]
-    source_name: str
+    source_name: Optional[str] = None
     credentials: Credentials
-
-
-class DeleteBackupSourceRequest(BaseModel):
-    source_id: int
 
 
 class UpdateBackupSourceRequest(BaseModel):
@@ -185,7 +181,7 @@ def add_backup_source(
     db_session.add(
         Source(
             tenant_id=user_info.tenant_id,
-            name=request.source_name,
+            name=request.source_name if request.source_name else f"{request.source_type} created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
             source_type=request.source_type,
             url=request.credentials.url,
             login=request.credentials.login,
@@ -206,18 +202,18 @@ def list_backup_sources(
     all_backup_sources = db_session.exec(statement).all()
 
     return ApiResponse(
-        message="Backups sources retrieved successfully", data=list(all_backup_sources)
+        message="Backups sources retrieved successfully", data={"backup_sources": list(all_backup_sources)}
     )
 
 
 @app.delete("/api/v1/backup-sources/delete", response_model=ApiResponse)
 def delete_backup_source(
-    request: DeleteBackupSourceRequest,
+    source_id: int = Query(),
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
     statement = select(Source).where(
-        Source.id == request.source_id, Source.tenant_id == user_info.tenant_id
+        Source.id == source_id, Source.tenant_id == user_info.tenant_id
     )
     source = db_session.exec(statement).first()
 
@@ -230,7 +226,7 @@ def delete_backup_source(
     return ApiResponse(message="Backup source deleted successfully")
 
 
-@app.put("/api/v1/backup-sources/update", response_model=ApiResponse)
+@app.post("/api/v1/backup-sources/update", response_model=ApiResponse)
 def update_backup_source(
     request: UpdateBackupSourceRequest,
     db_session: Session = Depends(get_db_session),
@@ -257,29 +253,50 @@ def update_backup_source(
         if request.credentials.api_key is not None:
             source.api_key = request.credentials.api_key
 
-    db_session.add(source)
-    db_session.commit()
-    db_session.refresh(source)
+    db_session.merge(source)
+    # db_session.commit()
+    # db_session.refresh(source)
 
-    return ApiResponse(message="Backup source updated successfully", data=source)
+    return ApiResponse(message="Backup source updated successfully")
+
+@app.get("/api/v1/backup-sources/test-connection", response_model=ApiResponse)
+def test_connection_backup_source(
+    source_id: int = Query(),
+    db_session: Session = Depends(get_db_session),
+    user_info: UserInfo = Depends(get_user_info),
+):
+    statement = select(Source).where(
+        Source.id == source_id, Source.tenant_id == user_info.tenant_id
+    )
+    source = db_session.exec(statement).first()
+
+    if not source:
+        raise HTTPException(status_code=404, detail="Backup source not found")
+
+    backup_manager = BackupManager(credentials=Credentials(url=source.url,
+                                                            login=source.login,
+                                                            password=source.password,
+                                                            api_key=source.api_key)).create_from_type(source.source_type)
+    
+    if backup_manager.test_connection():
+        return ApiResponse(message="Backup source configuration success")
+    
+    else:
+        raise HTTPException(400, detail="Could not reach backup source")
 
 
 # / =========== BACKUP SOURCE ===========
 # =========== BACKUP DESTINATION ===========
 class AddBackupDestinationRequest(BaseModel):
-    source_type: Literal["s3", "local_fs", "sftp"]
-    source_name: str
+    destination_type: Literal["s3", "local_fs", "sftp"]
+    destination_name: Optional[str] = None
     credentials: Credentials
-    config: dict[str, str]
-
-
-class DeleteBackupDestinationRequest(BaseModel):
-    destination_id: int
+    config: Optional[dict[str, str]] = None
 
 
 class UpdateBackupDestinationRequest(BaseModel):
     destination_id: int
-    source_name: Optional[str] = None
+    destination_name: Optional[str] = None
     credentials: Optional[Credentials] = None
     config: Optional[dict[str, str]] = None
 
@@ -293,8 +310,8 @@ def add_backup_destination(
     db_session.add(
         Destination(
             tenant_id=user_info.tenant_id,
-            name=request.source_name,
-            destination_type=request.source_type,
+            name=request.destination_name if request.destination_name else f"{request.destination_type} created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            destination_type=request.destination_type,
             url=request.credentials.url,
             login=request.credentials.login,
             password=request.credentials.password,
@@ -302,7 +319,6 @@ def add_backup_destination(
             config=request.config,
         )
     )
-    db_session.commit()
 
     return ApiResponse(message="Backup destination added successfully")
 
@@ -317,18 +333,18 @@ def list_backup_destinations(
 
     return ApiResponse(
         message="Backup destinations retrieved successfully",
-        data=list(all_backup_destinations),
+        data={"backup_destinations": list(all_backup_destinations)},
     )
 
 
 @app.delete("/api/v1/backup-destinations/delete", response_model=ApiResponse)
 def delete_backup_destination(
-    request: DeleteBackupDestinationRequest,
+    destination_id: int = Query(), 
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
     statement = select(Destination).where(
-        Destination.id == request.destination_id,
+        Destination.id == destination_id,
         Destination.tenant_id == user_info.tenant_id,
     )
     destination = db_session.exec(statement).first()
@@ -342,7 +358,7 @@ def delete_backup_destination(
     return ApiResponse(message="Backup destination deleted successfully")
 
 
-@app.put("/api/v1/backup-destinations/update", response_model=ApiResponse)
+@app.post("/api/v1/backup-destinations/update", response_model=ApiResponse)
 def update_backup_destination(
     request: UpdateBackupDestinationRequest,
     db_session: Session = Depends(get_db_session),
@@ -357,8 +373,8 @@ def update_backup_destination(
     if not destination:
         raise HTTPException(status_code=404, detail="Backup destination not found")
 
-    if request.source_name is not None:
-        destination.name = request.source_name
+    if request.destination_name is not None:
+        destination.name = request.destination_name
 
     if request.credentials is not None:
         if request.credentials.url is not None:
@@ -373,14 +389,37 @@ def update_backup_destination(
     if request.config is not None:
         destination.config = request.config
 
-    db_session.add(destination)
-    db_session.commit()
-    db_session.refresh(destination)
 
-    return ApiResponse(
-        message="Backup destination updated successfully", data=destination
+    return ApiResponse(message="Backup destination updated successfully")
+
+
+@app.get("/api/v1/backup-destinations/test-connection", response_model=ApiResponse)
+def test_connection_backup_destination(
+    destination_id: int = Query(), 
+    db_session: Session = Depends(get_db_session),
+    user_info: UserInfo = Depends(get_user_info),
+):
+    statement = select(Destination).where(
+        Destination.id == destination_id,
+        Destination.tenant_id == user_info.tenant_id,
     )
+    destination = db_session.exec(statement).first()
 
+    if not destination:
+        raise HTTPException(status_code=404, detail="Backup destination not found")
+
+
+
+    backup_destination_manager = BackupDestinationManager(credentials=Credentials(url=destination.url,
+                                                            login=destination.login,
+                                                            password=destination.password,
+                                                            api_key=destination.api_key)).create_from_type(destination.destination_type)
+    
+    if backup_destination_manager.test_connection():
+        return ApiResponse(message="Backup destination configuration success")
+
+    else:
+        raise HTTPException(400, detail="Could not reach backup destination")
 
 # / =========== BACKUP DESTINATION ===========
 # =========== PERFORMING BACKUPS ===========
@@ -415,6 +454,7 @@ def create_backup_from_source(
             api_key=backup_source.api_key,
         )
     ).create_from_type(backup_source.source_type)
+
     backup_destination_manager = BackupDestinationManager(
         Credentials(
             url=backup_destination.url,
@@ -422,7 +462,7 @@ def create_backup_from_source(
             password=backup_destination.password,
             api_key=backup_destination.api_key,
         )
-    ).create_from_type(backup_destination.source_type)
+    ).create_from_type(backup_destination.destination_type)
 
     remote_path = create_backup(backup_manager, backup_destination_manager)
 
@@ -452,14 +492,14 @@ def list_backups_from_destination(
             password=backup_destination.password,
             api_key=backup_destination.api_key,
         )
-    ).create_from_type(backup_destination.source_type)
+    ).create_from_type(backup_destination.destination_type)
 
     backups = list_backups(backup_destination_manager)
 
     return ApiResponse(
         message="Backups retrieved successfully",
         data={
-            "backups": [backup.model_dump() for backup in backups],
+            "backups": list(backups),
             "count": len(backups),
         },
     )
@@ -487,33 +527,36 @@ def delete_backup_from_destination(
             password=backup_destination.password,
             api_key=backup_destination.api_key,
         )
-    ).create_from_type(backup_destination.source_type)
+    ).create_from_type(backup_destination.destination_type)
 
     backup_destination_manager.delete_backup(backup_path)
 
     return ApiResponse(
-        message="Backup deleted successfully", data={"path": backup_path}
-    )
+        message="Backup deleted successfully")
+
+
+class RestoreBackupRequest(BaseModel):
+    backup_source_id: int
+    backup_destination_id: int
+    backup_path: str
 
 
 @app.post("/api/v1/backup/restore", response_model=ApiResponse)
 def restore_backup_to_source(
-    backup_source_id: int = Query(),
-    backup_destination_id: int = Query(),
-    backup_path: str = Query(),
+    request: RestoreBackupRequest,
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
     statement = select(Destination).where(
         and_(
             Destination.tenant_id == user_info.tenant_id,
-            Destination.id == backup_destination_id,
+            Destination.id == request.backup_destination_id,
         )
     )
     backup_destination = db_session.exec(statement).one()
 
     statement = select(Source).where(
-        and_(Source.tenant_id == user_info.tenant_id, Source.id == backup_source_id)
+        and_(Source.tenant_id == user_info.tenant_id, Source.id == request.backup_source_id)
     )
     backup_source = db_session.exec(statement).one()
 
@@ -533,18 +576,15 @@ def restore_backup_to_source(
             password=backup_destination.password,
             api_key=backup_destination.api_key,
         )
-    ).create_from_type(backup_destination.source_type)
+    ).create_from_type(backup_destination.destination_type)
 
     restore_from_backup(
-        backup_path=backup_path,
+        backup_path=request.backup_path,
         backup_manager=backup_manager,
         backup_destination_manager=backup_destination_manager,
-        backup_destination=backup_source.url,
     )
 
-    return ApiResponse(
-        message="Backup restored successfully", data={"path": backup_path}
-    )
+    return ApiResponse(message="Backup restored successfully")
 
 
 # / =========== PERFORMING BACKUPS ===========

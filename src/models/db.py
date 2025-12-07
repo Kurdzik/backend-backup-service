@@ -3,7 +3,6 @@ from typing import Optional
 from datetime import datetime
 import uuid
 
-
 class User(SQLModel, table=True):
     __tablename__ = "users"
 

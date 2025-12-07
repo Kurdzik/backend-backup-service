@@ -33,7 +33,7 @@ class BaseBackupManager:
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
 
-    def restore_from_backup(self, backup_path: str, backup_destination: str) -> None:
+    def restore_from_backup(self, backup_path: str) -> None:
         """Restore source using provided credentials
 
         Args:
@@ -165,7 +165,6 @@ def restore_from_backup(
     backup_path: str,
     backup_manager: BaseBackupManager,
     backup_destination_manager: BaseBackupDestinationManager,
-    backup_destination: str,
 ) -> None:
     """Restore a backup from the destination to the source
 
@@ -178,7 +177,7 @@ def restore_from_backup(
     local_path = backup_destination_manager.get_backup(backup_path)
 
     try:
-        backup_manager.restore_from_backup(local_path, backup_destination)
+        backup_manager.restore_from_backup(local_path)
     finally:
         if os.path.exists(local_path):
             os.remove(local_path)

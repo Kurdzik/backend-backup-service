@@ -84,7 +84,7 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 os.remove(os.path.join(temp_dir, file))
             os.rmdir(temp_dir)
 
-    def restore_from_backup(self, backup_path: str, backup_destination: str) -> None:
+    def restore_from_backup(self, backup_path: str) -> None:
         """Restore Elasticsearch indexes from backup
 
         Args:
