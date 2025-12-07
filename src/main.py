@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends, Query
 from src.utils import get_user_info, get_db_session, UserInfo
-from pydantic import BaseModel
-from typing import Optional, Literal
+from pydantic import BaseModel, Field
+from typing import Optional, Literal, Union
 from sqlalchemy import create_engine
 from sqlmodel import Session, select, and_
 from src.models.db import User, Source, Destination
@@ -12,7 +12,7 @@ from uuid import uuid4
 from fastapi.responses import ORJSONResponse
 from datetime import datetime, timedelta
 from src.middleware import (
-    AuthMiddleWare,
+    AuthMiddleware,
     ResponseTimeLoggingMiddleware,
     SQLAlchemySessionMiddleware,
     session,
@@ -26,14 +26,14 @@ load_dotenv()
 engine = create_engine(os.environ["DATABASE_URL"])
 app = FastAPI(title="Backend", redoc_url=None, default_response_class=ORJSONResponse)
 
-app.add_middleware(AuthMiddleWare)
+app.add_middleware(AuthMiddleware)
 app.add_middleware(ResponseTimeLoggingMiddleware)
 app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)
 
 
 class ApiResponse(BaseModel):
     message: str
-    data: Optional[str] = None
+    data: dict[str, Union[str, float, int]] = Field(default_factory=dict)
 
 
 # =========== USER MANAGEMENT ===========
@@ -55,75 +55,74 @@ class ResetPasswordRequest(BaseModel):
     new_password2: str
 
 
-@app.post("/api/v1/users/register")
-def register(request: RegisterUserRequest):
+@app.post("/api/v1/users/register", response_model=ApiResponse)
+def register(request: RegisterUserRequest,     db_session: Session = Depends(get_db_session),):
     if request.password != request.password2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
         )
 
-    with Session(engine) as session:
         # Check if user already exists
-        existing_user = session.exec(
-            select(User).where(User.username == request.username)
-        ).first()
+    existing_user = db_session.exec(
+        select(User).where(User.username == request.username)
+    ).first()
 
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail="Username already exists"
-            )
-
-        user = User(
-            tenant_id=str(uuid4()),
-            username=request.username,
-            password=request.password,
-            is_active=True,
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Username already exists"
         )
-        session.add(user)
-        session.commit()
-        session.refresh(user)
 
-    return ApiResponse(message="User created successfully", data=None)
+    user = User(
+        tenant_id=str(uuid4()),
+        username=request.username,
+        password=request.password,
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    return ApiResponse(message="User created successfully")
 
 
-@app.post("/api/v1/users/login")
-def login(request: LoginUserRequest):
-    with Session(engine) as session:
-        user = session.exec(
-            select(User).where(
-                and_(
-                    User.username == request.username, User.password == request.password
-                )
+@app.post("/api/v1/users/login", response_model=ApiResponse)
+def login(request: LoginUserRequest,     db_session: Session = Depends(get_db_session),):
+
+    user = db_session.exec(
+        select(User).where(
+            and_(
+                User.username == request.username, User.password == request.password
             )
-        ).first()
-
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Wrong username or password",
-            )
-
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="User account is disabled"
-            )
-
-        auth_session = AuthSession(
-            user_id=user.id,
-            ip_address="127.0.0.1",
-            user_agent="Mozilla",
-            expires_at=datetime.now() + timedelta(days=7),
         )
-        session.add(auth_session)
-        session.commit()
-        session.refresh(auth_session)
-        session_token = auth_session.token
+    ).first()
 
-    return ApiResponse(message="User logged in successfully", data=session_token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Wrong username or password",
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is disabled"
+        )
+
+    auth_session = AuthSession(
+        user_id=user.id,
+        ip_address="127.0.0.1",
+        user_agent="Mozilla",
+        expires_at=datetime.now() + timedelta(days=7),
+    )
+    db_session.add(auth_session)
+    db_session.commit()
+    db_session.refresh(auth_session)
+    session_token = auth_session.token
+
+    return ApiResponse(message="User logged in successfully", data={"session_token":session_token})
 
 
-@app.post("/api/v1/users/reset-password")
-def reset_password(request: ResetPasswordRequest):
+@app.post("/api/v1/users/change-password", response_model=ApiResponse)
+def reset_password(request: ResetPasswordRequest,     db_session: Session = Depends(get_db_session)):
     if request.new_password != request.new_password2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match"
@@ -135,50 +134,49 @@ def reset_password(request: ResetPasswordRequest):
             detail="New password must be different from old password",
         )
 
-    with Session(engine) as session:
-        user = session.exec(
-            select(User).where(User.username == request.username)
-        ).first()
+    user = db_session.exec(
+        select(User).where(User.username == request.username)
+    ).first()
 
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
-        if user.password != request.old_password:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Old password is incorrect",
-            )
+    if user.password != request.old_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Old password is incorrect",
+        )
 
-        user.password = request.new_password
-        session.add(user)
-        session.commit()
+    user.password = request.new_password
+    db_session.add(user)
 
-    return ApiResponse(message="Password reset successfully", data=None)
+
+    return ApiResponse(message="Password reset successfully")
 
 
 # / =========== USER MANAGEMENT ===========
 # =========== BACKUP SOURCE ===========
 
 
-class AddBackupSourceRequest:
+class AddBackupSourceRequest(BaseModel):
     source_type: Literal["vault", "qdrant", "postgres", "elasticsearch"]
     source_name: str
     credentials: Credentials
 
 
-class DeleteBackupSourceRequest:
+class DeleteBackupSourceRequest(BaseModel):
     source_id: int
 
 
-class UpdateBackupSourceRequest:
+class UpdateBackupSourceRequest(BaseModel):
     source_id: int
     source_name: Optional[str] = None
     credentials: Optional[Credentials] = None
 
 
-@app.post("/api/v1/backup-sources/add")
+@app.post("/api/v1/backup-sources/add", response_model=ApiResponse)
 def add_backup_source(
     request: AddBackupSourceRequest,
     db_session: Session = Depends(get_db_session),
@@ -196,10 +194,10 @@ def add_backup_source(
         )
     )
 
-    return ApiResponse(message="Backup source added successfully", data=None)
+    return ApiResponse(message="Backup source added successfully")
 
 
-@app.get("/api/v1/backup-sources/list")
+@app.get("/api/v1/backup-sources/list", response_model=ApiResponse)
 def list_backup_sources(
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
@@ -212,7 +210,7 @@ def list_backup_sources(
     )
 
 
-@app.delete("/api/v1/backup-sources/delete")
+@app.delete("/api/v1/backup-sources/delete", response_model=ApiResponse)
 def delete_backup_source(
     request: DeleteBackupSourceRequest,
     db_session: Session = Depends(get_db_session),
@@ -229,10 +227,10 @@ def delete_backup_source(
     db_session.delete(source)
     db_session.commit()
 
-    return ApiResponse(message="Backup source deleted successfully", data=None)
+    return ApiResponse(message="Backup source deleted successfully")
 
 
-@app.put("/api/v1/backup-sources/update")
+@app.put("/api/v1/backup-sources/update", response_model=ApiResponse)
 def update_backup_source(
     request: UpdateBackupSourceRequest,
     db_session: Session = Depends(get_db_session),
@@ -268,25 +266,25 @@ def update_backup_source(
 
 # / =========== BACKUP SOURCE ===========
 # =========== BACKUP DESTINATION ===========
-class AddBackupDestinationRequest:
+class AddBackupDestinationRequest(BaseModel):
     source_type: Literal["s3", "local_fs", "sftp"]
     source_name: str
     credentials: Credentials
     config: dict[str, str]
 
 
-class DeleteBackupDestinationRequest:
+class DeleteBackupDestinationRequest(BaseModel):
     destination_id: int
 
 
-class UpdateBackupDestinationRequest:
+class UpdateBackupDestinationRequest(BaseModel):
     destination_id: int
     source_name: Optional[str] = None
     credentials: Optional[Credentials] = None
     config: Optional[dict[str, str]] = None
 
 
-@app.post("/api/v1/backup-destinations/add")
+@app.post("/api/v1/backup-destinations/add", response_model=ApiResponse)
 def add_backup_destination(
     request: AddBackupDestinationRequest,
     db_session: Session = Depends(get_db_session),
@@ -306,10 +304,10 @@ def add_backup_destination(
     )
     db_session.commit()
 
-    return ApiResponse(message="Backup destination added successfully", data=None)
+    return ApiResponse(message="Backup destination added successfully")
 
 
-@app.get("/api/v1/backup-destinations/list")
+@app.get("/api/v1/backup-destinations/list", response_model=ApiResponse)
 def list_backup_destinations(
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
@@ -323,7 +321,7 @@ def list_backup_destinations(
     )
 
 
-@app.delete("/api/v1/backup-destinations/delete")
+@app.delete("/api/v1/backup-destinations/delete", response_model=ApiResponse)
 def delete_backup_destination(
     request: DeleteBackupDestinationRequest,
     db_session: Session = Depends(get_db_session),
@@ -341,10 +339,10 @@ def delete_backup_destination(
     db_session.delete(destination)
     db_session.commit()
 
-    return ApiResponse(message="Backup destination deleted successfully", data=None)
+    return ApiResponse(message="Backup destination deleted successfully")
 
 
-@app.put("/api/v1/backup-destinations/update")
+@app.put("/api/v1/backup-destinations/update", response_model=ApiResponse)
 def update_backup_destination(
     request: UpdateBackupDestinationRequest,
     db_session: Session = Depends(get_db_session),
@@ -389,7 +387,7 @@ def update_backup_destination(
 from src.base import create_backup, restore_from_backup, list_backups
 
 
-@app.put("/api/v1/backup/create")
+@app.put("/api/v1/backup/create", response_model=ApiResponse)
 def create_backup_from_source(
     backup_source_id: int = Query(),
     backup_destination_id: int = Query(),
@@ -433,7 +431,7 @@ def create_backup_from_source(
     )
 
 
-@app.get("/api/v1/backup/list")
+@app.get("/api/v1/backup/list", response_model=ApiResponse)
 def list_backups_from_destination(
     backup_destination_id: int = Query(),
     db_session: Session = Depends(get_db_session),
@@ -467,7 +465,7 @@ def list_backups_from_destination(
     )
 
 
-@app.delete("/api/v1/backup/delete")
+@app.delete("/api/v1/backup/delete", response_model=ApiResponse)
 def delete_backup_from_destination(
     backup_destination_id: int = Query(),
     backup_path: str = Query(),
@@ -498,7 +496,7 @@ def delete_backup_from_destination(
     )
 
 
-@app.post("/api/v1/backup/restore")
+@app.post("/api/v1/backup/restore", response_model=ApiResponse)
 def restore_backup_to_source(
     backup_source_id: int = Query(),
     backup_destination_id: int = Query(),

@@ -57,7 +57,8 @@ class ResponseTimeLoggingMiddleware(BaseHTTPMiddleware):
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        excluded_paths = ["/docs", "/redoc", "/openapi.json"]
+        excluded_paths = ["/docs", "/redoc", "/openapi.json", "/api/v1/users/register", "/api/v1/users/login", "/api/v1/users/change-password"]
+
 
         if request.url.path in excluded_paths:
             response = await call_next(request)

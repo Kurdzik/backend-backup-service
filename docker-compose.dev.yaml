@@ -1,0 +1,43 @@
+networks:
+  app-network:
+
+
+services:
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile
+      args:
+        - PG_VERSION=17 # Specify the version of database server, major versions has to be the same
+    ports:
+      - "8080:8000"
+    # volumes:
+    #   - local_backups_data:/etc/backups
+    env_file:
+      - .env
+    networks:
+      - app-network
+    depends_on:
+      app_db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1"]
+  app_db:
+    container_name: app_db
+    image: "postgres:17"
+    env_file:
+      - .env
+    ports:
+      - "5555:5432"
+    # volumes:
+    #   - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
