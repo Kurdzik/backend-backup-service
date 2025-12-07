@@ -191,3 +191,18 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
                     self.delete_backup(backup.path)
                 except Exception as e:
                     print(f"Failed to delete backup {backup.path}: {str(e)}")
+
+    def test_connection(self) -> bool:
+        """Test whether the SFTP server is accessible
+        
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            # Attempt to access the remote directory
+            # This verifies both connectivity and access to the configured path
+            self.sftp_client.stat(self.remote_dir)
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False

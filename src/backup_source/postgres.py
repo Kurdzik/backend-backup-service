@@ -145,3 +145,23 @@ class PostgresBackupManager(BaseBackupManager):
             raise RuntimeError(f"pg_restore failed: {e.stderr}")
         except psycopg2.Error as e:
             raise RuntimeError(f"Database operation failed: {str(e)}")
+
+    def test_connection(self) -> bool:
+        """Test whether the Postgres database is reachable
+        
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            conn = psycopg2.connect(**self.connection_params)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.close()
+            conn.close()
+            return True
+        except psycopg2.Error as e:
+            print(f"Connection test failed: {str(e)}")
+            return False
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False

@@ -139,3 +139,30 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
                     self.delete_backup(backup.path)
                 except Exception as e:
                     print(f"Failed to delete backup {backup.path}: {str(e)}")
+
+    def test_connection(self) -> bool:
+        """Test whether the local filesystem backup directory is accessible
+        
+        Returns:
+            bool: True if directory is accessible and writable, False otherwise
+        """
+        try:
+            # Check if directory exists and is accessible
+            if not os.path.exists(self.backup_dir):
+                print(f"Backup directory does not exist: {self.backup_dir}")
+                return False
+            
+            # Check if directory is readable
+            if not os.access(self.backup_dir, os.R_OK):
+                print(f"Backup directory is not readable: {self.backup_dir}")
+                return False
+            
+            # Check if directory is writable
+            if not os.access(self.backup_dir, os.W_OK):
+                print(f"Backup directory is not writable: {self.backup_dir}")
+                return False
+            
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False

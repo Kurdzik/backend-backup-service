@@ -43,6 +43,12 @@ class BaseBackupManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
+    
+    def test_connection(self) -> bool:
+        """Tests wheather the destination is reachable"""
+        raise NotImplementedError(
+            f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
+        )
 
 
 class BaseBackupDestinationManager:
@@ -109,8 +115,15 @@ class BaseBackupDestinationManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
+    
+    def test_connection(self) -> bool:
+        """Tests wheather the destination is reachable"""
+        raise NotImplementedError(
+            f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
+        )
 
 
+# TODO: Move below methods to utils.py
 def create_backup(
     backup_manager: BaseBackupManager,
     backup_destination_manager: BaseBackupDestinationManager,

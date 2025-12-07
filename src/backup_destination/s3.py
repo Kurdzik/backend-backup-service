@@ -181,3 +181,21 @@ class S3BackupDestination(BaseBackupDestinationManager):
                     self.delete_backup(backup.path)
                 except Exception as e:
                     print(f"Failed to delete backup {backup.path}: {str(e)}")
+
+    def test_connection(self) -> bool:
+        """Test whether the S3 compatible bucket is accessible
+        
+        Returns:
+            bool: True if connection is successful and bucket is accessible, False otherwise
+        """
+        try:
+            # Attempt to list objects in the bucket with a limit of 1
+            # This is a lightweight operation to verify connectivity and access
+            self.s3_client.list_objects_v2(
+                Bucket=self.bucket_name,
+                MaxKeys=1
+            )
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False

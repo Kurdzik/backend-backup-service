@@ -188,3 +188,21 @@ class VaultBackupManager(BaseBackupManager):
                 for dir_name in dirs:
                     os.rmdir(os.path.join(root, dir_name))
             os.rmdir(temp_dir)
+
+    def test_connection(self) -> bool:
+        """Test whether the Vault instance is reachable and authenticated
+        
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            # Check if client is authenticated
+            if not self.client.is_authenticated():
+                return False
+            
+            # Attempt to list auth methods to verify connectivity
+            self.client.sys.list_auth_methods()
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False

@@ -139,3 +139,17 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 for dir_name in dirs:
                     os.rmdir(os.path.join(root, dir_name))
             os.rmdir(temp_dir)
+
+    def test_connection(self) -> bool:
+        """Test whether the Elasticsearch cluster is reachable
+        
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            # Attempt to get cluster info
+            self.client.info()
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False

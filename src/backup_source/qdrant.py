@@ -173,3 +173,17 @@ class QdrantBackupManager(BaseBackupManager):
                 for dir_name in dirs:
                     os.rmdir(os.path.join(root, dir_name))
             os.rmdir(temp_dir)
+
+    def test_connection(self) -> bool:
+        """Test whether the Qdrant instance is reachable
+        
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            # Attempt to get collections to verify connectivity
+            self.client.get_collections()
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False
