@@ -1,6 +1,18 @@
 networks:
   app-network:
 
+volumes:
+  backups_volume:
+
+x-common-env: &common-env
+  RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  DATABASE_URL: ${DATABASE_URL}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_DB: ${POSTGRES_DB}
 
 services:
   backend:
@@ -9,29 +21,99 @@ services:
       context: .
       dockerfile: dockerfiles/Dockerfile
       args:
-        - PG_VERSION=17 # Specify the version of database server, major versions has to be the same
+        - PG_VERSION=17
+    user: "1000"
     ports:
       - "8080:8000"
-    # volumes:
-    #   - local_backups_data:/etc/backups
+    environment:
+      <<: *common-env
     env_file:
       - .env
     networks:
       - app-network
+    volumes:
+      - backups_volume:/mnt/backups
     depends_on:
       app_db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
     command: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1"]
+
+  worker:
+    container_name: worker
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile
+      args:
+        - PG_VERSION=17
+    user: "1000"
+    environment:
+      <<: *common-env
+    env_file:
+      - .env
+    networks:
+      - app-network
+    volumes:
+      - backups_volume:/mnt/backups
+    depends_on:
+      app_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["sh", "-c", "uv run celery -A src.worker worker --loglevel=info --without-heartbeat --without-mingle --without-gossip"]
+
+  # celery-beat:
+  #   container_name: celery-beat
+  #   build:
+  #     context: .
+  #     dockerfile: dockerfiles/Dockerfile
+  #     args:
+  #       - PG_VERSION=17
+  #   environment:
+  #     <<: *common-env
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     app_db:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   command: ["sh", "-c", "uv run celery -A src.scheduler beat --loglevel=info --without-heartbeat"]
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: "rabbitmq:3.13-management-alpine"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "5672:5672"     
+      - "15672:15672"    
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   app_db:
     container_name: app_db
     image: "postgres:17"
+    environment:
+      <<: *common-env
     env_file:
       - .env
     ports:
       - "5555:5432"
-    # volumes:
-    #   - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
     restart: unless-stopped

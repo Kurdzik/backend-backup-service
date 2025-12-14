@@ -1,7 +1,9 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Optional
+
+from sqlmodel import Field, SQLModel
+
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
@@ -21,7 +23,9 @@ class Session(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id")
     token: str = Field(
-        unique=True, index=True, default_factory=lambda: f"ust-{str(uuid.uuid4()).replace("-","")}"
+        unique=True,
+        index=True,
+        default_factory=lambda: f"ust-{str(uuid.uuid4()).replace('-', '')}",
     )
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None

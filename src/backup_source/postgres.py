@@ -3,16 +3,12 @@ import re
 import subprocess
 from datetime import datetime
 from typing import Optional
-
-from src.base import BaseBackupManager, Credentials
-
+from urllib.parse import urlparse
 
 import psycopg2
 from psycopg2 import sql
-import subprocess
-import os
-from datetime import datetime
-from urllib.parse import urlparse
+
+from src.base import BaseBackupManager, Credentials
 
 
 class PostgresBackupManager(BaseBackupManager):
@@ -83,7 +79,7 @@ class PostgresBackupManager(BaseBackupManager):
 
     def test_connection(self) -> bool:
         """Test whether the Postgres database is reachable
-        
+
         Returns:
             bool: True if connection is successful, False otherwise
         """
@@ -103,9 +99,9 @@ class PostgresBackupManager(BaseBackupManager):
 
     def restore_from_backup(self, backup_path: str) -> None:
         """Restore PostgreSQL database from backup
-        
-        Uses pg_restore with --clean and --if-exists flags to drop and 
-        recreate database objects before restoring. This is the PostgreSQL 
+
+        Uses pg_restore with --clean and --if-exists flags to drop and
+        recreate database objects before restoring. This is the PostgreSQL
         recommended approach.
 
         Args:
@@ -115,17 +111,21 @@ class PostgresBackupManager(BaseBackupManager):
             raise FileNotFoundError(f"Backup file not found: {backup_path}")
 
         target_db = self.connection_params.get("database", "postgres")
-        
+
         env = os.environ.copy()
         if self.connection_params.get("password"):
             env["PGPASSWORD"] = self.connection_params["password"]
 
         cmd = [
             "pg_restore",
-            "-h", self.connection_params.get("host", "localhost"),
-            "-p", str(self.connection_params.get("port", 5432)),
-            "-U", self.connection_params.get("user", "postgres"),
-            "-d", target_db,
+            "-h",
+            self.connection_params.get("host", "localhost"),
+            "-p",
+            str(self.connection_params.get("port", 5432)),
+            "-U",
+            self.connection_params.get("user", "postgres"),
+            "-d",
+            target_db,
             "--clean",
             "--if-exists",
             "-v",
@@ -136,4 +136,3 @@ class PostgresBackupManager(BaseBackupManager):
             subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"pg_restore failed: {e.stderr}")
-

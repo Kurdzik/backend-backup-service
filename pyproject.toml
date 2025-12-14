@@ -25,5 +25,6 @@ dependencies = [
     "ruff>=0.14.7",
     "sqlalchemy>=2.0.44",
     "sqlmodel>=0.0.27",
+    "structlog>=25.5.0",
     "uvicorn>=0.38.0",
 ]

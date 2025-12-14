@@ -1,11 +1,7 @@
 from fastapi import Request
 from sqlmodel import Session
-from pydantic import BaseModel
 
-
-class UserInfo(BaseModel):
-    user_id: int
-    tenant_id: str
+from src.models.structs import UserInfo
 
 
 def get_db_session(request: Request) -> Session:

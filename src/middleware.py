@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -7,10 +8,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-import logging
+
 from src.models.db import Session as UserSession
 from src.models.db import User
-
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 engine = create_engine(DATABASE_URL)
@@ -57,8 +57,14 @@ class ResponseTimeLoggingMiddleware(BaseHTTPMiddleware):
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        excluded_paths = ["/docs", "/redoc", "/openapi.json", "/api/v1/users/register", "/api/v1/users/login", "/api/v1/users/change-password"]
-
+        excluded_paths = [
+            "/docs",
+            "/redoc",
+            "/openapi.json",
+            "/api/v1/users/register",
+            "/api/v1/users/login",
+            "/api/v1/users/change-password",
+        ]
 
         if request.url.path in excluded_paths:
             response = await call_next(request)

@@ -6,9 +6,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Warsaw
 
 ARG PG_VERSION=17
-# ARG ELASTIC_VERSION=latest
-# ARG QDRANT_CLIENT_VERSION=latest
-# ARG HVAC_VERSION=latest
 
 RUN apt update && apt install -y --no-install-recommends \
     ca-certificates \
@@ -25,8 +22,17 @@ RUN apt update && apt install -y --no-install-recommends \
     postgresql-client-${PG_VERSION} \
     && rm -rf /var/lib/apt/lists/*
 
+RUN groupadd -g 1000 appuser && useradd -u 1000 -g 1000 -m -s /sbin/nologin appuser
+
 ADD . /app
 WORKDIR /app
+RUN mkdir -p /mnt/backups
+RUN chown 1000:1000 /mnt/backups  # Or your host user
+RUN chmod 755 /mnt/backups
+
+RUN chown -R appuser:appuser /app
+
+USER appuser
 
 RUN uv sync --locked
 

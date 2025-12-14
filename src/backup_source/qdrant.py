@@ -1,18 +1,15 @@
 import json
 import os
+import tarfile
+import tempfile
 from datetime import datetime
 from typing import Dict, Optional
 
 import httpx
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from src.base import BaseBackupManager, Credentials
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
-import json
-import tarfile
-import os
-import tempfile
-from datetime import datetime
 
 
 class QdrantBackupManager(BaseBackupManager):
@@ -20,15 +17,19 @@ class QdrantBackupManager(BaseBackupManager):
         super().__init__(credentials)
 
         if credentials.api_key:
-            self.client = QdrantClient(url=credentials.url, api_key=credentials.api_key, timeout=36000)
+            self.client = QdrantClient(
+                url=credentials.url, api_key=credentials.api_key, timeout=36000
+            )
         elif credentials.login and credentials.password:
-            self.client = QdrantClient(url=credentials.url, api_key=credentials.login, timeout=36000)
+            self.client = QdrantClient(
+                url=credentials.url, api_key=credentials.login, timeout=36000
+            )
         else:
             self.client = QdrantClient(url=credentials.url, timeout=36000)
 
     def test_connection(self) -> bool:
         """Test whether the Qdrant instance is reachable
-        
+
         Returns:
             bool: True if connection is successful, False otherwise
         """
@@ -167,32 +168,35 @@ class QdrantBackupManager(BaseBackupManager):
 
                 # Reconstruct vector config
                 vectors_config_data = config["vectors"]
-                
+
                 # Extract size and distance from the saved config
                 size = vectors_config_data.get("size")
                 distance_str = vectors_config_data.get("distance", "Cosine")
-                
+
                 # Parse distance enum
                 if isinstance(distance_str, str):
-                    distance_str = distance_str.split(".")[-1]  # Handle "Distance.COSINE" format
-                    distance = Distance[distance_str.upper()] if distance_str else Distance.COSINE
+                    distance_str = distance_str.split(".")[
+                        -1
+                    ]  # Handle "Distance.COSINE" format
+                    distance = (
+                        Distance[distance_str.upper()]
+                        if distance_str
+                        else Distance.COSINE
+                    )
                 else:
                     distance = distance_str
 
                 # Create collection with config
                 self.client.create_collection(
                     collection_name=collection_name,
-                    vectors_config=VectorParams(
-                        size=size,
-                        distance=distance
-                    ),
+                    vectors_config=VectorParams(size=size, distance=distance),
                 )
 
                 # Restore points in batches
                 if points:
                     batch_size = 500  # Adjust if needed
                     for i in range(0, len(points), batch_size):
-                        batch = points[i:i + batch_size]
+                        batch = points[i : i + batch_size]
                         point_structs = []
                         for point in batch:
                             point_structs.append(
@@ -202,11 +206,13 @@ class QdrantBackupManager(BaseBackupManager):
                                     payload=point.get("payload", {}),
                                 )
                             )
-                        
+
                         self.client.upsert(
                             collection_name=collection_name, points=point_structs
                         )
-                        print(f"Restored {min(i + batch_size, len(points))}/{len(points)} points for {collection_name}")
+                        print(
+                            f"Restored {min(i + batch_size, len(points))}/{len(points)} points for {collection_name}"
+                        )
 
         finally:
             # Cleanup temporary directory

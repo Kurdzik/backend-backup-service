@@ -1,18 +1,14 @@
 import json
 import os
+import tarfile
+import tempfile
 from datetime import datetime
 from typing import Optional
 
 import httpx
+from elasticsearch import Elasticsearch
 
 from src.base import BaseBackupManager, Credentials
-
-from elasticsearch import Elasticsearch
-import tarfile
-import json
-import os
-import tempfile
-from datetime import datetime
 
 
 class ElasticsearchBackupManager(BaseBackupManager):
@@ -84,12 +80,25 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 os.remove(os.path.join(temp_dir, file))
             os.rmdir(temp_dir)
 
+    def test_connection(self) -> bool:
+        """Test whether the Elasticsearch cluster is reachable
+
+        Returns:
+            bool: True if connection is successful, False otherwise
+        """
+        try:
+            # Attempt to get cluster info
+            self.client.info()
+            return True
+        except Exception as e:
+            print(f"Connection test failed: {str(e)}")
+            return False
+
     def restore_from_backup(self, backup_path: str) -> None:
         """Restore Elasticsearch indexes from backup
 
         Args:
             backup_path: Path to the backup tar.gz file
-            backup_destination: Elasticsearch cluster URL to restore to (optional, uses current client if not provided)
         """
         temp_dir = tempfile.mkdtemp()
 
@@ -116,20 +125,48 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 except Exception:
                     pass
 
-                # Create index with settings
-                settings = index_data.get("settings", {})
-                mappings = index_data.get("mappings", {})
+                # Extract settings and mappings with proper structure handling
+                settings_wrapper = index_data.get("settings", {})
+                mappings_wrapper = index_data.get("mappings", {})
 
-                self.client.indices.create(
-                    index=index_name,
-                    settings=settings.get(index_name, {}).get("settings", {}),
-                    mappings=mappings.get(index_name, {}).get("mappings", {}),
+                # Unwrap the index-specific nesting from Elasticsearch API response
+                index_settings = (
+                    settings_wrapper.get(index_name, {}).get("settings", {})
+                    if isinstance(settings_wrapper, dict)
+                    else {}
+                )
+                index_mappings = (
+                    mappings_wrapper.get(index_name, {}).get("mappings", {})
+                    if isinstance(mappings_wrapper, dict)
+                    else {}
                 )
 
-                # Restore documents
+                # Create index with settings and mappings
+                try:
+                    self.client.indices.create(
+                        index=index_name,
+                        settings=index_settings if index_settings else None,
+                        mappings=index_mappings if index_mappings else None,
+                    )
+                except Exception as e:
+                    # If index creation fails, try without settings/mappings
+                    print(
+                        f"Failed to create index {index_name} with settings/mappings: {e}"
+                    )
+                    self.client.indices.create(index=index_name)
+
+                # Restore documents using bulk API with batching
                 documents = index_data.get("documents", [])
-                for doc in documents:
-                    self.client.index(index=index_name, document=doc)
+                if documents:
+                    batch_size = 1000
+                    for i in range(0, len(documents), batch_size):
+                        batch = documents[i : i + batch_size]
+                        bulk_body = []
+                        for doc in batch:
+                            bulk_body.append({"index": {"_index": index_name}})
+                            bulk_body.append(doc)
+
+                        self.client.bulk(body=bulk_body)
 
         finally:
             # Cleanup temporary directory
@@ -139,17 +176,3 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 for dir_name in dirs:
                     os.rmdir(os.path.join(root, dir_name))
             os.rmdir(temp_dir)
-
-    def test_connection(self) -> bool:
-        """Test whether the Elasticsearch cluster is reachable
-        
-        Returns:
-            bool: True if connection is successful, False otherwise
-        """
-        try:
-            # Attempt to get cluster info
-            self.client.info()
-            return True
-        except Exception as e:
-            print(f"Connection test failed: {str(e)}")
-            return False

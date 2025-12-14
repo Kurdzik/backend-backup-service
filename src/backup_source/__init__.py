@@ -1,9 +1,10 @@
+from typing import Literal
+
 from src.backup_source.elasticsearch import ElasticsearchBackupManager
 from src.backup_source.postgres import PostgresBackupManager
 from src.backup_source.qdrant import QdrantBackupManager
 from src.backup_source.vault import VaultBackupManager
-from typing import Literal
-from src.base import Credentials, BaseBackupManager
+from src.base import BaseBackupManager, Credentials
 
 
 class BackupManager:

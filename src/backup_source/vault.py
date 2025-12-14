@@ -1,19 +1,15 @@
 import json
 import os
-from datetime import datetime
-from typing import Dict, Optional
-
-import httpx
-
-from src.base import BaseBackupManager, Credentials
-
-import hvac
-import json
 import tarfile
-import os
 import tempfile
 from datetime import datetime
+from typing import Dict, Optional
 from urllib.parse import urlparse
+
+import httpx
+import hvac
+
+from src.base import BaseBackupManager, Credentials
 
 
 class VaultBackupManager(BaseBackupManager):
@@ -191,7 +187,7 @@ class VaultBackupManager(BaseBackupManager):
 
     def test_connection(self) -> bool:
         """Test whether the Vault instance is reachable and authenticated
-        
+
         Returns:
             bool: True if connection is successful, False otherwise
         """
@@ -199,7 +195,7 @@ class VaultBackupManager(BaseBackupManager):
             # Check if client is authenticated
             if not self.client.is_authenticated():
                 return False
-            
+
             # Attempt to list auth methods to verify connectivity
             self.client.sys.list_auth_methods()
             return True

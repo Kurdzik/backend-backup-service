@@ -1,27 +1,32 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Query
-from src.utils import get_user_info, get_db_session, UserInfo
-from pydantic import BaseModel, Field
-from typing import Optional, Literal, Union, Any
-from sqlalchemy import create_engine
-from sqlmodel import Session, select, and_
-from src.models.db import User, Source, Destination
-from src.models.db import Session as AuthSession
 import os
-from dotenv import load_dotenv
-from uuid import uuid4
-from fastapi.responses import ORJSONResponse
 from datetime import datetime, timedelta
-from src.middleware import (
-    AuthMiddleware,
-    ResponseTimeLoggingMiddleware,
-    SQLAlchemySessionMiddleware,
-    session,
-)
-from src.base import Credentials
+from typing import Any, Literal, Optional
+from uuid import uuid4
+
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.responses import ORJSONResponse
+from pydantic import BaseModel, Field
+from sqlalchemy import create_engine
+from sqlmodel import Session, and_, select
+
+from src import configure_logger
 from src.backup_destination import BackupDestinationManager
+from src.backup_schedule_manager import ScheduleManager
 from src.backup_source import BackupManager
+from src.base import Credentials
+from src.middleware import (AuthMiddleware, ResponseTimeLoggingMiddleware,
+                            SQLAlchemySessionMiddleware, session)
+from src.models.api import RestoreBackupRequest
+from src.models.db import Destination
+from src.models.db import Session as AuthSession
+from src.models.db import Source, User
+from src.utils import UserInfo, get_db_session, get_user_info
+from src.worker import (create_backup, delete_backup, list_backups,
+                        restore_from_backup)
 
 load_dotenv()
+configure_logger()
 
 engine = create_engine(os.environ["DATABASE_URL"])
 app = FastAPI(title="Backend", redoc_url=None, default_response_class=ORJSONResponse)
@@ -56,7 +61,10 @@ class ResetPasswordRequest(BaseModel):
 
 
 @app.post("/api/v1/users/register", response_model=ApiResponse)
-def register(request: RegisterUserRequest,     db_session: Session = Depends(get_db_session),):
+def register(
+    request: RegisterUserRequest,
+    db_session: Session = Depends(get_db_session),
+):
     if request.password != request.password2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
@@ -86,13 +94,13 @@ def register(request: RegisterUserRequest,     db_session: Session = Depends(get
 
 
 @app.post("/api/v1/users/login", response_model=ApiResponse)
-def login(request: LoginUserRequest,     db_session: Session = Depends(get_db_session),):
-
+def login(
+    request: LoginUserRequest,
+    db_session: Session = Depends(get_db_session),
+):
     user = db_session.exec(
         select(User).where(
-            and_(
-                User.username == request.username, User.password == request.password
-            )
+            and_(User.username == request.username, User.password == request.password)
         )
     ).first()
 
@@ -118,11 +126,15 @@ def login(request: LoginUserRequest,     db_session: Session = Depends(get_db_se
     db_session.refresh(auth_session)
     session_token = auth_session.token
 
-    return ApiResponse(message="User logged in successfully", data={"session_token":session_token})
+    return ApiResponse(
+        message="User logged in successfully", data={"session_token": session_token}
+    )
 
 
 @app.post("/api/v1/users/change-password", response_model=ApiResponse)
-def reset_password(request: ResetPasswordRequest,     db_session: Session = Depends(get_db_session)):
+def reset_password(
+    request: ResetPasswordRequest, db_session: Session = Depends(get_db_session)
+):
     if request.new_password != request.new_password2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match"
@@ -152,8 +164,14 @@ def reset_password(request: ResetPasswordRequest,     db_session: Session = Depe
     user.password = request.new_password
     db_session.add(user)
 
-
     return ApiResponse(message="Password reset successfully")
+
+
+@app.get("/api/v1/users/get-info", response_model=ApiResponse)
+def add_backup_source(user_info: UserInfo = Depends(get_user_info)):
+    return ApiResponse(
+        message="Information retrieved successfully", data=user_info.model_dump()
+    )
 
 
 # / =========== USER MANAGEMENT ===========
@@ -181,7 +199,9 @@ def add_backup_source(
     db_session.add(
         Source(
             tenant_id=user_info.tenant_id,
-            name=request.source_name if request.source_name else f"{request.source_type} created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            name=request.source_name
+            if request.source_name
+            else f"{request.source_type} created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
             source_type=request.source_type,
             url=request.credentials.url,
             login=request.credentials.login,
@@ -202,7 +222,8 @@ def list_backup_sources(
     all_backup_sources = db_session.exec(statement).all()
 
     return ApiResponse(
-        message="Backups sources retrieved successfully", data={"backup_sources": list(all_backup_sources)}
+        message="Backups sources retrieved successfully",
+        data={"backup_sources": list(all_backup_sources)},
     )
 
 
@@ -259,6 +280,7 @@ def update_backup_source(
 
     return ApiResponse(message="Backup source updated successfully")
 
+
 @app.get("/api/v1/backup-sources/test-connection", response_model=ApiResponse)
 def test_connection_backup_source(
     source_id: int = Query(),
@@ -273,14 +295,18 @@ def test_connection_backup_source(
     if not source:
         raise HTTPException(status_code=404, detail="Backup source not found")
 
-    backup_manager = BackupManager(credentials=Credentials(url=source.url,
-                                                            login=source.login,
-                                                            password=source.password,
-                                                            api_key=source.api_key)).create_from_type(source.source_type)
-    
+    backup_manager = BackupManager(
+        credentials=Credentials(
+            url=source.url,
+            login=source.login,
+            password=source.password,
+            api_key=source.api_key,
+        )
+    ).create_from_type(source.source_type)
+
     if backup_manager.test_connection():
         return ApiResponse(message="Backup source configuration success")
-    
+
     else:
         raise HTTPException(400, detail="Could not reach backup source")
 
@@ -310,7 +336,9 @@ def add_backup_destination(
     db_session.add(
         Destination(
             tenant_id=user_info.tenant_id,
-            name=request.destination_name if request.destination_name else f"{request.destination_type} created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            name=request.destination_name
+            if request.destination_name
+            else f"{request.destination_type} created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
             destination_type=request.destination_type,
             url=request.credentials.url,
             login=request.credentials.login,
@@ -339,7 +367,7 @@ def list_backup_destinations(
 
 @app.delete("/api/v1/backup-destinations/delete", response_model=ApiResponse)
 def delete_backup_destination(
-    destination_id: int = Query(), 
+    destination_id: int = Query(),
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
@@ -389,13 +417,12 @@ def update_backup_destination(
     if request.config is not None:
         destination.config = request.config
 
-
     return ApiResponse(message="Backup destination updated successfully")
 
 
 @app.get("/api/v1/backup-destinations/test-connection", response_model=ApiResponse)
 def test_connection_backup_destination(
-    destination_id: int = Query(), 
+    destination_id: int = Query(),
     db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
@@ -408,93 +435,57 @@ def test_connection_backup_destination(
     if not destination:
         raise HTTPException(status_code=404, detail="Backup destination not found")
 
+    backup_destination_manager = BackupDestinationManager(
+        credentials=Credentials(
+            url=destination.url,
+            login=destination.login,
+            password=destination.password,
+            api_key=destination.api_key,
+        )
+    ).create_from_type(destination.destination_type)
 
-
-    backup_destination_manager = BackupDestinationManager(credentials=Credentials(url=destination.url,
-                                                            login=destination.login,
-                                                            password=destination.password,
-                                                            api_key=destination.api_key)).create_from_type(destination.destination_type)
-    
     if backup_destination_manager.test_connection():
         return ApiResponse(message="Backup destination configuration success")
 
     else:
         raise HTTPException(400, detail="Could not reach backup destination")
 
+
 # / =========== BACKUP DESTINATION ===========
 # =========== PERFORMING BACKUPS ===========
-from src.base import create_backup, restore_from_backup, list_backups
 
 
 @app.put("/api/v1/backup/create", response_model=ApiResponse)
 def create_backup_from_source(
     backup_source_id: int = Query(),
     backup_destination_id: int = Query(),
-    db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    statement = select(Destination).where(
-        and_(
-            Destination.tenant_id == user_info.tenant_id,
-            Destination.id == backup_destination_id,
-        )
+    create_backup.apply_async(
+        kwargs={
+            "backup_source_id": backup_source_id,
+            "backup_destination_id": backup_destination_id,
+            "user_info": user_info.model_dump(),
+        },
+        ignore_result=True,
     )
-    backup_destination = db_session.exec(statement).one()
 
-    statement = select(Source).where(
-        and_(Source.tenant_id == user_info.tenant_id, Source.id == backup_source_id)
-    )
-    backup_source = db_session.exec(statement).one()
-
-    backup_manager = BackupManager(
-        Credentials(
-            url=backup_source.url,
-            login=backup_source.login,
-            password=backup_source.password,
-            api_key=backup_source.api_key,
-        )
-    ).create_from_type(backup_source.source_type)
-
-    backup_destination_manager = BackupDestinationManager(
-        Credentials(
-            url=backup_destination.url,
-            login=backup_destination.login,
-            password=backup_destination.password,
-            api_key=backup_destination.api_key,
-        )
-    ).create_from_type(backup_destination.destination_type)
-
-    remote_path = create_backup(backup_manager, backup_destination_manager)
-
-    return ApiResponse(
-        message="Backup created successfully", data={"path": remote_path}
-    )
+    return ApiResponse(message="Backup is being created")
 
 
 @app.get("/api/v1/backup/list", response_model=ApiResponse)
 def list_backups_from_destination(
     backup_destination_id: int = Query(),
-    db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    statement = select(Destination).where(
-        and_(
-            Destination.tenant_id == user_info.tenant_id,
-            Destination.id == backup_destination_id,
-        )
+    result = list_backups.apply_async(
+        kwargs={
+            "backup_destination_id": backup_destination_id,
+            "user_info": user_info.model_dump(),
+        },
+        ignore_result=False,
     )
-    backup_destination = db_session.exec(statement).one()
-
-    backup_destination_manager = BackupDestinationManager(
-        Credentials(
-            url=backup_destination.url,
-            login=backup_destination.login,
-            password=backup_destination.password,
-            api_key=backup_destination.api_key,
-        )
-    ).create_from_type(backup_destination.destination_type)
-
-    backups = list_backups(backup_destination_manager)
+    backups = result.get()
 
     return ApiResponse(
         message="Backups retrieved successfully",
@@ -509,82 +500,75 @@ def list_backups_from_destination(
 def delete_backup_from_destination(
     backup_destination_id: int = Query(),
     backup_path: str = Query(),
-    db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    statement = select(Destination).where(
-        and_(
-            Destination.tenant_id == user_info.tenant_id,
-            Destination.id == backup_destination_id,
-        )
+    delete_backup.apply_async(
+        kwargs={
+            "backup_destination_id": backup_destination_id,
+            "backup_path": backup_path,
+            "user_info": user_info.model_dump(),
+        },
+        ignore_result=True,
     )
-    backup_destination = db_session.exec(statement).one()
 
-    backup_destination_manager = BackupDestinationManager(
-        Credentials(
-            url=backup_destination.url,
-            login=backup_destination.login,
-            password=backup_destination.password,
-            api_key=backup_destination.api_key,
-        )
-    ).create_from_type(backup_destination.destination_type)
-
-    backup_destination_manager.delete_backup(backup_path)
-
-    return ApiResponse(
-        message="Backup deleted successfully")
-
-
-class RestoreBackupRequest(BaseModel):
-    backup_source_id: int
-    backup_destination_id: int
-    backup_path: str
+    return ApiResponse(message="Backup deleted successfully")
 
 
 @app.post("/api/v1/backup/restore", response_model=ApiResponse)
 def restore_backup_to_source(
     request: RestoreBackupRequest,
-    db_session: Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    statement = select(Destination).where(
-        and_(
-            Destination.tenant_id == user_info.tenant_id,
-            Destination.id == request.backup_destination_id,
-        )
-    )
-    backup_destination = db_session.exec(statement).one()
-
-    statement = select(Source).where(
-        and_(Source.tenant_id == user_info.tenant_id, Source.id == request.backup_source_id)
-    )
-    backup_source = db_session.exec(statement).one()
-
-    backup_manager = BackupManager(
-        Credentials(
-            url=backup_source.url,
-            login=backup_source.login,
-            password=backup_source.password,
-            api_key=backup_source.api_key,
-        )
-    ).create_from_type(backup_source.source_type)
-
-    backup_destination_manager = BackupDestinationManager(
-        Credentials(
-            url=backup_destination.url,
-            login=backup_destination.login,
-            password=backup_destination.password,
-            api_key=backup_destination.api_key,
-        )
-    ).create_from_type(backup_destination.destination_type)
-
-    restore_from_backup(
-        backup_path=request.backup_path,
-        backup_manager=backup_manager,
-        backup_destination_manager=backup_destination_manager,
+    result = restore_from_backup.apply_async(
+        kwargs={"request": request.model_dump(), "user_info": user_info.model_dump()},
+        ignore_result=False,
     )
 
-    return ApiResponse(message="Backup restored successfully")
+    result = result.get()
+
+    if result:
+        return ApiResponse(message="Backup restored successfully")
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Source could not be restored from backup",
+        )
 
 
 # / =========== PERFORMING BACKUPS ===========
+# =========== SCHEDULING BACKUPS ===========
+
+
+class CreateScheduleBackupRequest(BaseModel):
+    schedule_name: str
+    backup_source_id: int
+    backup_destination_id: int
+    backup_schedule: str
+    keep_n: int
+
+
+@app.post("/api/v1/backup-scheules/add", response_model=ApiResponse)
+def restore_backup_to_source(
+    request: CreateScheduleBackupRequest,
+    db_session: Session = Depends(get_db_session),
+    user_info: UserInfo = Depends(get_user_info),
+):
+    schedule_manager = ScheduleManager(db_session)
+
+    schedule_manager.create_schedule(
+        tenant_id=user_info.tenant_id,
+        name=request.schedule_name
+        if request.schedule_name
+        else f"Schedule created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        source_id=request.backup_source_id,
+        destination_id=request.backup_destination_id,
+        keep_n=request.keep_n,
+        schedule=request.backup_schedule,
+        is_active=True,
+    )
+
+    return ApiResponse(message="Backup schedule added successfully")
+
+
+# / =========== SCHEDULING BACKUPS ===========

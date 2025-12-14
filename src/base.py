@@ -1,8 +1,9 @@
 import inspect
-from typing import Optional
 import os
-from pydantic import BaseModel
 import uuid
+from typing import Optional
+
+from pydantic import BaseModel
 
 
 class Credentials(BaseModel):
@@ -43,7 +44,7 @@ class BaseBackupManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
-    
+
     def test_connection(self) -> bool:
         """Tests wheather the destination is reachable"""
         raise NotImplementedError(
@@ -115,69 +116,9 @@ class BaseBackupDestinationManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
-    
+
     def test_connection(self) -> bool:
         """Tests wheather the destination is reachable"""
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
-
-
-# TODO: Move below methods to utils.py
-def create_backup(
-    backup_manager: BaseBackupManager,
-    backup_destination_manager: BaseBackupDestinationManager,
-) -> str:
-    """Create a backup and upload it to the destination
-
-    Args:
-        backup_manager: Manager responsible for creating the backup
-        backup_destination_manager: Manager responsible for uploading to destination
-
-    Returns:
-        str: Remote path/identifier of the uploaded backup
-    """
-    local_path = backup_manager.create_backup()
-
-    try:
-        remote_path = backup_destination_manager.upload_backup(local_path)
-        return remote_path
-    finally:
-        if os.path.exists(local_path):
-            os.remove(local_path)
-
-
-def list_backups(
-    backup_destination_manager: BaseBackupDestinationManager,
-) -> list[BackupDetails]:
-    """List all available backups at the destination
-
-    Args:
-        backup_destination_manager: Manager responsible for listing backups
-
-    Returns:
-        list[BackupDetails]: List of backup details
-    """
-    return backup_destination_manager.list_backups()
-
-
-def restore_from_backup(
-    backup_path: str,
-    backup_manager: BaseBackupManager,
-    backup_destination_manager: BaseBackupDestinationManager,
-) -> None:
-    """Restore a backup from the destination to the source
-
-    Args:
-        backup_path: Remote path/identifier of the backup to restore
-        backup_manager: Manager responsible for restoring the backup
-        backup_destination_manager: Manager responsible for downloading from destination
-        backup_destination: Destination where the backup should be restored to
-    """
-    local_path = backup_destination_manager.get_backup(backup_path)
-
-    try:
-        backup_manager.restore_from_backup(local_path)
-    finally:
-        if os.path.exists(local_path):
-            os.remove(local_path)

@@ -1,13 +1,11 @@
 import os
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from src.base import Credentials, BaseBackupDestinationManager, BackupDetails
-
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import paramiko
-import os
-from datetime import datetime
-from urllib.parse import urlparse
+
+from src.base import BackupDetails, BaseBackupDestinationManager, Credentials
 
 
 class SFTPBackupDestination(BaseBackupDestinationManager):
@@ -194,7 +192,7 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
 
     def test_connection(self) -> bool:
         """Test whether the SFTP server is accessible
-        
+
         Returns:
             bool: True if connection is successful, False otherwise
         """

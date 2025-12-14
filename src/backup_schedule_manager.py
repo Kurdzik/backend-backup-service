@@ -1,6 +1,8 @@
-from sqlmodel import Session, select
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from sqlmodel import Session, select
+
 from src.models.db import Schedule as ScheduleModel
 
 
