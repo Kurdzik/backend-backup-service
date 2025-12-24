@@ -15,15 +15,18 @@ from src.backup_destination import BackupDestinationManager
 from src.backup_schedule_manager import ScheduleManager
 from src.backup_source import BackupManager
 from src.base import Credentials
-from src.middleware import (AuthMiddleware, ResponseTimeLoggingMiddleware,
-                            SQLAlchemySessionMiddleware, session)
+from src.middleware import (
+    AuthMiddleware,
+    ResponseTimeLoggingMiddleware,
+    SQLAlchemySessionMiddleware,
+    session,
+)
 from src.models.api import RestoreBackupRequest
 from src.models.db import Destination
 from src.models.db import Session as AuthSession
 from src.models.db import Source, User
 from src.utils import UserInfo, get_db_session, get_user_info
-from src.worker import (create_backup, delete_backup, list_backups,
-                        restore_from_backup)
+from src.worker import create_backup, delete_backup, list_backups, restore_from_backup
 
 load_dotenv()
 configure_logger()
@@ -70,7 +73,7 @@ def register(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
         )
 
-        # Check if user already exists
+    # Check if user already exists
     existing_user = db_session.exec(
         select(User).where(User.username == request.username)
     ).first()
@@ -168,7 +171,7 @@ def reset_password(
 
 
 @app.get("/api/v1/users/get-info", response_model=ApiResponse)
-def add_backup_source(user_info: UserInfo = Depends(get_user_info)):
+def get_current_user_info(user_info: UserInfo = Depends(get_user_info)):
     return ApiResponse(
         message="Information retrieved successfully", data=user_info.model_dump()
     )
@@ -465,7 +468,7 @@ def create_backup_from_source(
         kwargs={
             "backup_source_id": backup_source_id,
             "backup_destination_id": backup_destination_id,
-            "user_info": user_info.model_dump(),
+            "tenant_id": user_info.tenant_id,
         },
         ignore_result=True,
     )
@@ -548,7 +551,76 @@ class CreateScheduleBackupRequest(BaseModel):
     keep_n: int
 
 
-@app.post("/api/v1/backup-scheules/add", response_model=ApiResponse)
+@app.post("/api/v1/backup-schedules/add", response_model=ApiResponse)
+def restore_backup_to_source(
+    request: CreateScheduleBackupRequest,
+    db_session: Session = Depends(get_db_session),
+    user_info: UserInfo = Depends(get_user_info),
+):
+    schedule_manager = ScheduleManager(db_session)
+
+    schedule_manager.create_schedule(
+        tenant_id=user_info.tenant_id,
+        name=request.schedule_name
+        if request.schedule_name
+        else f"Schedule created at: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        source_id=request.backup_source_id,
+        destination_id=request.backup_destination_id,
+        keep_n=request.keep_n,
+        schedule=request.backup_schedule,
+        is_active=True,
+    )
+
+    return ApiResponse(message="Backup schedule added successfully")
+
+
+@app.delete("/api/v1/backup-schedules/delete", response_model=ApiResponse)
+def restore_backup_to_source(
+    schedule_id: int = Query(),
+    db_session: Session = Depends(get_db_session),
+    user_info: UserInfo = Depends(get_user_info),
+):
+    schedule_manager = ScheduleManager(db_session)
+    schedule_manager.delete_schedule(schedule_id, user_info.tenant_id)
+
+    return ApiResponse(message="Backup schedule deleted successfully")
+
+
+class UpdateScheduleBackupRequest(BaseModel):
+    schedule_id: int
+    schedule_name: str
+    backup_source_id: int
+    backup_destination_id: int
+    backup_schedule: str
+    keep_n: int
+
+
+@app.post("/api/v1/backup-schedules/update", response_model=ApiResponse)
+def restore_backup_to_source(
+    request: UpdateScheduleBackupRequest,
+    db_session: Session = Depends(get_db_session),
+    user_info: UserInfo = Depends(get_user_info),
+):
+    schedule_manager = ScheduleManager(db_session)
+
+    old_schedule = schedule_manager.get_schedule(
+        schedule_id=request.schedule_id, tenant_id=user_info.tenant_id
+    )
+
+    schedule_manager.update_schedule(
+        schedule_id=old_schedule.source_id,
+        tenant_id=old_schedule.tenant_id,
+        name=old_schedule.name,
+        source_id=old_schedule.source_id,
+        destination_id=old_schedule.destination_id,
+        keep_n=old_schedule.keep_n,
+        is_active=old_schedule.is_active,
+    )
+
+    return ApiResponse(message="Backup schedule added successfully")
+
+
+@app.get("/api/v1/backup-schedules/list", response_model=ApiResponse)
 def restore_backup_to_source(
     request: CreateScheduleBackupRequest,
     db_session: Session = Depends(get_db_session),

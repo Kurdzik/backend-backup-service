@@ -1,14 +1,33 @@
 from datetime import datetime
 from typing import List, Optional
+import os
 
 from sqlmodel import Session, select
+from kombu import Connection, Exchange, Queue
 
 from src.models.db import Schedule as ScheduleModel
+
+
+schedules_exchange = Exchange("schedules_exchange", "direct", durable=True)
+schedules_queue = Queue(
+    "schedules", exchange=schedules_exchange, routing_key="schedules"
+)
 
 
 class ScheduleManager:
     def __init__(self, session: Session) -> None:
         self.session = session
+
+    def _notify_scheduler_reload(self) -> None:
+        """Send message to Celery Beat to reload schedules"""
+        with Connection(os.environ["CELERY_BROKER_URL"]) as conn:
+            with conn.Producer() as producer:
+                producer.publish(
+                    {},
+                    exchange=schedules_exchange,
+                    routing_key="schedules",
+                    declare=[schedules_exchange, schedules_queue],
+                )
 
     def create_schedule(
         self,
@@ -47,6 +66,7 @@ class ScheduleManager:
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)
+        self._notify_scheduler_reload()
         return schedule_obj
 
     def get_schedule(self, schedule_id: int, tenant_id: str) -> Optional[ScheduleModel]:
@@ -138,6 +158,7 @@ class ScheduleManager:
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)
+        self._notify_scheduler_reload()
         return schedule_obj
 
     def delete_schedule(self, schedule_id: int, tenant_id: str) -> bool:
@@ -158,6 +179,7 @@ class ScheduleManager:
 
         self.session.delete(schedule_obj)
         self.session.commit()
+        self._notify_scheduler_reload()
         return True
 
     def update_last_run(
@@ -184,6 +206,7 @@ class ScheduleManager:
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)
+        # No reload needed for last_run updates
         return schedule_obj
 
     def toggle_schedule(
@@ -209,4 +232,5 @@ class ScheduleManager:
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)
+        self._notify_scheduler_reload()
         return schedule_obj

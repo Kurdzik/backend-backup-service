@@ -7,8 +7,8 @@ volumes:
 x-common-env: &common-env
   RABBITMQ_USER: ${RABBITMQ_USER:-guest}
   RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-  RABBITMQ_HOST: rabbitmq
-  RABBITMQ_PORT: 5672
+  RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+  RABBITMQ_PORT: ${RABBITMQ_PORT:-5555}
   DATABASE_URL: ${DATABASE_URL}
   POSTGRES_USER: ${POSTGRES_USER}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -18,7 +18,7 @@ services:
   backend:
     container_name: backend
     build:
-      context: .
+      context: backend
       dockerfile: dockerfiles/Dockerfile
       args:
         - PG_VERSION=17
@@ -44,7 +44,7 @@ services:
   worker:
     container_name: worker
     build:
-      context: .
+      context: backend
       dockerfile: dockerfiles/Dockerfile
       args:
         - PG_VERSION=17
@@ -63,28 +63,28 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
-    command: ["sh", "-c", "uv run celery -A src.worker worker --loglevel=info --without-heartbeat --without-mingle --without-gossip"]
+    command: ["sh", "-c", "uv run celery -A src.worker worker --loglevel=info "] #--without-heartbeat --without-mingle --without-gossip
 
-  # celery-beat:
-  #   container_name: celery-beat
-  #   build:
-  #     context: .
-  #     dockerfile: dockerfiles/Dockerfile
-  #     args:
-  #       - PG_VERSION=17
-  #   environment:
-  #     <<: *common-env
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - app-network
-  #   depends_on:
-  #     app_db:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   command: ["sh", "-c", "uv run celery -A src.scheduler beat --loglevel=info --without-heartbeat"]
+  scheduler:
+    container_name: scheduler
+    build:
+      context: backend
+      dockerfile: dockerfiles/Dockerfile
+      args:
+        - PG_VERSION=17
+    environment:
+      <<: *common-env
+    env_file:
+      - .env
+    networks:
+      - app-network
+    depends_on:
+      app_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["sh", "-c", "uv run celery -A src.scheduler beat --loglevel=debug"]
 
   rabbitmq:
     container_name: rabbitmq
@@ -109,7 +109,9 @@ services:
     container_name: app_db
     image: "postgres:17"
     environment:
-      <<: *common-env
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     env_file:
       - .env
     ports:
