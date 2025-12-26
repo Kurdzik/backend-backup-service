@@ -27,16 +27,31 @@ from src.models.db import Session as AuthSession
 from src.models.db import Source, User
 from src.utils import UserInfo, get_db_session, get_user_info
 from src.worker import create_backup, delete_backup, list_backups, restore_from_backup
+from fastapi.middleware.cors import CORSMiddleware
+
 
 load_dotenv()
 configure_logger()
 
 engine = create_engine(os.environ["DATABASE_URL"])
 app = FastAPI(title="Backend", redoc_url=None, default_response_class=ORJSONResponse)
+<<<<<<< HEAD
 
 app.add_middleware(AuthMiddleware)  # ty:ignore[invalid-argument-type]
 app.add_middleware(ResponseTimeLoggingMiddleware)  # ty:ignore[invalid-argument-type]
 app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)  # ty:ignore[invalid-argument-type]
+=======
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(AuthMiddleware)
+app.add_middleware(ResponseTimeLoggingMiddleware)
+app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)
+>>>>>>> 7d957a7 (frontend template + working login and register)
 
 
 class ApiResponse(BaseModel):

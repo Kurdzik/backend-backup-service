@@ -2,21 +2,21 @@
 import { createTheme, rem } from "@mantine/core";
 
 export const theme = createTheme({
-  defaultRadius: "sm", // Subtle rounded edges
+  defaultRadius: 0, // Sharp corners - style
   cursorType: "pointer",
 
   primaryColor: "slate",
   primaryShade: { light: 6, dark: 5 },
 
-  // Modern, clean typography
-  fontFamily: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif`,
+  // inspired typography - Inter font family
+  fontFamily: `"Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif`,
 
   fontSizes: {
-    xs: rem(10),
+    xs: rem(11),
     sm: rem(12),
-    md: rem(14),
-    lg: rem(16),
-    xl: rem(18),
+    md: rem(13),
+    lg: rem(14),
+    xl: rem(16),
   },
 
   colors: {
@@ -95,7 +95,7 @@ export const theme = createTheme({
   },
 
   headings: {
-    fontFamily: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif`,
+    fontFamily: `"Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif`,
     fontWeight: "500", // Modern medium weight
     sizes: {
       h1: {
@@ -111,20 +111,20 @@ export const theme = createTheme({
       h3: {
         fontSize: rem(20),
         lineHeight: "1.3",
-        fontWeight: "500",
+        fontWeight: "600",
       },
       h4: {
-        fontSize: rem(18),
+        fontSize: rem(16),
         lineHeight: "1.35",
         fontWeight: "500",
       },
       h5: {
-        fontSize: rem(16),
+        fontSize: rem(14),
         lineHeight: "1.4",
         fontWeight: "500",
       },
       h6: {
-        fontSize: rem(14),
+        fontSize: rem(13),
         lineHeight: "1.45",
         fontWeight: "500",
       },
@@ -139,16 +139,16 @@ export const theme = createTheme({
     xl: rem(40),
   },
 
-  // Clean, modern shadows
+  // Clean, minimal shadows - style
   shadows: {
-    xs: "0 1px 2px 0 rgb(0 0 0 / 0.03)",
-    sm: "0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)",
-    md: "0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)",
-    lg: "0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08)",
-    xl: "0 20px 25px -5px rgb(0 0 0 / 0.09), 0 8px 10px -6px rgb(0 0 0 / 0.09)",
+    xs: "0 1px 2px 0 rgb(0 0 0 / 0.02)",
+    sm: "0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05)",
+    md: "0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.06)",
+    lg: "0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07)",
+    xl: "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
   },
 
-  // Modern, clean components
+  // style components
   components: {
     Button: {
       defaultProps: {
@@ -156,12 +156,14 @@ export const theme = createTheme({
       },
       styles: {
         root: {
-          borderRadius: rem(6), // Small rounded corners
+          borderRadius: 0, // Sharp corners
           fontWeight: 500,
-          fontSize: rem(14),
-          transition: "all 150ms ease",
+          fontSize: rem(13),
+          transition: "all 100ms cubic-bezier(0.4, 0, 0.2, 1)",
+          border: "1px solid var(--mantine-color-neutral-4)",
           "&:hover": {
-            transform: "translateY(-1px)",
+            transform: "none",
+            backgroundColor: "var(--mantine-color-neutral-2)",
           },
         },
       },
@@ -170,12 +172,13 @@ export const theme = createTheme({
     Card: {
       defaultProps: {
         shadow: "sm",
-        radius: "sm",
+        radius: 0,
       },
       styles: {
         root: {
           border: "1px solid var(--mantine-color-neutral-3)",
           backgroundColor: "var(--mantine-color-neutral-0)",
+          borderRadius: 0,
         },
       },
     },
@@ -183,14 +186,14 @@ export const theme = createTheme({
     Input: {
       styles: {
         input: {
-          borderRadius: rem(6),
+          borderRadius: 0,
           border: "1px solid var(--mantine-color-neutral-4)",
-          fontSize: rem(14),
+          fontSize: rem(13),
           backgroundColor: "var(--mantine-color-neutral-0)",
-          transition: "all 150ms ease",
+          transition: "all 100ms cubic-bezier(0.4, 0, 0.2, 1)",
           "&:focus": {
             borderColor: "var(--mantine-color-slate-6)",
-            boxShadow: "0 0 0 3px var(--mantine-color-slate-1)",
+            boxShadow: "inset 0 0 0 1px var(--mantine-color-slate-6)",
           },
         },
       },
@@ -199,11 +202,12 @@ export const theme = createTheme({
     Paper: {
       defaultProps: {
         shadow: "xs",
-        radius: "sm",
+        radius: 0,
       },
       styles: {
         root: {
-          border: "1px solid var(--mantine-color-neutral-2)",
+          border: "1px solid var(--mantine-color-neutral-3)",
+          borderRadius: 0,
         },
       },
     },
@@ -211,7 +215,7 @@ export const theme = createTheme({
     Modal: {
       styles: {
         content: {
-          borderRadius: rem(8),
+          borderRadius: 0,
           border: "1px solid var(--mantine-color-neutral-3)",
         },
         header: {
@@ -229,17 +233,51 @@ export const theme = createTheme({
         },
       },
     },
+
+    TextInput: {
+      styles: {
+        input: {
+          borderRadius: 0,
+          fontSize: rem(13),
+        },
+      },
+    },
+
+    Select: {
+      styles: {
+        input: {
+          borderRadius: 0,
+          fontSize: rem(13),
+        },
+      },
+    },
+
+    Checkbox: {
+      styles: {
+        input: {
+          borderRadius: 0,
+        },
+      },
+    },
+
+    Radio: {
+      styles: {
+        input: {
+          borderRadius: "50%",
+        },
+      },
+    },
   },
 
   other: {
-    borderRadius: rem(6), // Small rounded corners
-    transitionSpeed: "150ms", // Smooth but quick
+    borderRadius: 0, // Sharp corners
+    transitionSpeed: "100ms", // Quick and snappy
     borderColor: "var(--mantine-color-neutral-3)",
     elevation: {
-      subtle: "0 1px 2px rgba(0,0,0,0.03)",
-      card: "0 2px 4px rgba(0,0,0,0.06)",
-      elevated: "0 4px 8px rgba(0,0,0,0.08)",
-      floating: "0 8px 16px rgba(0,0,0,0.10)",
+      subtle: "0 1px 2px rgba(0,0,0,0.02)",
+      card: "0 2px 4px rgba(0,0,0,0.05)",
+      elevated: "0 4px 8px rgba(0,0,0,0.06)",
+      floating: "0 8px 16px rgba(0,0,0,0.08)",
     },
   },
 });

@@ -21,7 +21,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconUser,
-  IconApps
+  IconApps,
 } from "@tabler/icons-react";
 import React from "react";
 import Link from "next/link";
@@ -78,7 +78,7 @@ const bottomItems = [
   {
     icon: <IconLogout size={16} stroke={1.5} />,
     label: "Logout",
-  }
+  },
 ];
 
 const StatusDot = ({
@@ -95,7 +95,7 @@ const ItemBadge = ({ badge }: { badge?: string | number }) => {
   if (!badge) return null;
 
   return (
-    <Text size="xs" className={classes.itemBadge}>
+    <Text size="xs" fw={500} className={classes.itemBadge}>
       {badge}
     </Text>
   );
@@ -116,52 +116,38 @@ const SidebarItem = ({
       onClick={onClick}
       data-active={active || undefined}
       className={classes.sidebarItem}
-      style={{ width: "100%" }}
     >
-      {collapsed ? (
-        <Group justify="center" align="center">
-          <ThemeIcon
-            variant="light"
-            size={28}
-            radius={4}
-            className={classes.itemIcon}
-            color={active ? "slate" : "gray"}
-          >
-            {icon}
-          </ThemeIcon>
-        </Group>
-      ) : (
-        <Group gap="sm" align="center" wrap="nowrap">
-          <ThemeIcon
-            variant="light"
-            size={28}
-            radius={4}
-            className={classes.itemIcon}
-            color={active ? "slate" : "gray"}
-          >
-            {icon}
-          </ThemeIcon>
+      <ThemeIcon
+        variant="light"
+        size={28}
+        radius={0}
+        className={classes.itemIcon}
+        color={active ? "slate" : "gray"}
+      >
+        {icon}
+      </ThemeIcon>
 
+      {!collapsed && (
+        <>
           <Text
             size="sm"
             fw={active ? 500 : 400}
             className={classes.itemText}
-            style={{ flex: 1 }}
           >
             {label}
           </Text>
 
-          <Group gap={6} align="center">
+          <Group gap={6} align="center" wrap="nowrap">
             <ItemBadge badge={badge} />
             <StatusDot status={status} />
           </Group>
-        </Group>
+        </>
       )}
     </UnstyledButton>
   );
 
   const content = collapsed ? (
-    <Tooltip label={label} position="right" withArrow>
+    <Tooltip label={label} position="right" withArrow offset={8}>
       {buttonContent}
     </Tooltip>
   ) : (
@@ -180,7 +166,7 @@ const SidebarItem = ({
 };
 
 export const SidebarComponent = () => {
-  const [activeItem, setActiveItem] = React.useState("Database Connections");
+  const [activeItem, setActiveItem] = React.useState("Connected Applications");
   const [collapsed, setCollapsed] = React.useState(false);
 
   React.useEffect(() => {
@@ -226,63 +212,65 @@ export const SidebarComponent = () => {
     <Box
       className={classes.sidebarContainer}
       style={{
-        width: collapsed ? "60px" : "280px",
-        transition: "width 0.1s ease",
+        width: collapsed ? "80px" : "280px",
+        transition: "width 150ms cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       {/* Header */}
-      <Box className={classes.sidebarHeader} p={collapsed ? "sm" : "lg"}>
-        {collapsed ? (
-          <Group gap="sm" align="center" justify="space-between">
-            <Group gap="sm" align="center">
-              <ThemeIcon size={32} radius={6} variant="light" color="slate">
-                <IconAugmentedReality size={18} stroke={1.5} />
+      <Box className={classes.sidebarHeader}>
+        <Group gap="sm" align="center" justify="space-between">
+          {!collapsed && (
+            <Group gap={10} align="center">
+              <ThemeIcon
+                size={28}
+                radius={0}
+                variant="light"
+                color="slate"
+              >
+                <IconAugmentedReality size={16} stroke={2} />
               </ThemeIcon>
+              <Text fw={600} size="sm" className={classes.appTitle}>
+                Backup Manager
+              </Text>
             </Group>
-          </Group>
-        ) : (
-          <Group gap="sm" align="center" justify="space-between">
-            <Group gap="sm" align="center">
-              <ThemeIcon size={32} radius={6} variant="light" color="slate">
-                <IconAugmentedReality size={18} stroke={1.5} />
-              </ThemeIcon>
-              <Box>
-                <Text size="md" fw={600} c="slate.8">
-                  Backup Manager
-                </Text>
-              </Box>
-            </Group>
-          </Group>
-        )}
+          )}
+          {collapsed && (
+            <ThemeIcon
+              size={28}
+              radius={0}
+              variant="light"
+              color="slate"
+            >
+              <IconAugmentedReality size={16} stroke={2} />
+            </ThemeIcon>
+          )}
+        </Group>
       </Box>
 
       <Divider className={classes.headerDivider} />
 
       {/* Collapse Toggle */}
-      <Box p="xs">
+      <Box p="8px">
         <Group justify={collapsed ? "center" : "flex-end"}>
           <ActionIcon
             variant="subtle"
             size="sm"
             onClick={toggleCollapsed}
+            className={classes.collapseButton}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
-              <IconChevronRight size={16} />
+              <IconChevronRight size={16} stroke={2} />
             ) : (
-              <IconChevronLeft size={16} />
+              <IconChevronLeft size={16} stroke={2} />
             )}
           </ActionIcon>
         </Group>
       </Box>
 
       {/* Main Navigation */}
-      <ScrollArea
-        flex={1}
-        p={collapsed ? "xs" : "md"}
-        className={classes.scrollArea}
-      >
-        <Stack gap="lg">
+      <ScrollArea flex={1} p="12px" className={classes.scrollArea}>
+        <Stack gap={8}>
           <Box className={classes.menuSection}>
             {!collapsed && (
               <Text
@@ -290,7 +278,7 @@ export const SidebarComponent = () => {
                 fw={500}
                 c="dimmed"
                 tt="uppercase"
-                mb="sm"
+                mb={8}
                 className={classes.sectionLabel}
               >
                 Management
@@ -320,14 +308,14 @@ export const SidebarComponent = () => {
       <Box className={classes.sidebarBottom}>
         <Divider className={classes.bottomDivider} />
 
-        <Box p={collapsed ? "xs" : "md"}>
+        <Box p="12px">
           {!collapsed && (
             <Text
               size="xs"
               fw={500}
               c="dimmed"
               tt="uppercase"
-              mb="sm"
+              mb={8}
               className={classes.sectionLabel}
             >
               Account

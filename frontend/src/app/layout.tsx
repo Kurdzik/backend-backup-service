@@ -7,15 +7,15 @@ import { Notifications } from "@mantine/notifications";
 
 import React from "react";
 import { theme } from "../../theme";
+import Link from "next/link";
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export default function RootLayout({ children }: { children: any }) {
   return (
     <html lang="en">
       <title>Backup Manager</title>
       <head>
         <ColorSchemeScript />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <Link rel="shortcut icon" href="/favicon.ico" />
         <meta
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no"

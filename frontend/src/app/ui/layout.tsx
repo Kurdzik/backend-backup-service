@@ -1,6 +1,5 @@
 "use client";
 
-import "@mantine/core/styles.css";
 import { Box, Grid, Paper } from "@mantine/core";
 import React from "react";
 import { SidebarComponent } from "@/components/Sidebar";
