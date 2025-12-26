@@ -6,7 +6,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlmodel import Session, and_, select
-
+from typing import Optional
 from src import configure_logger, get_logger
 from src.backup_destination import BackupDestinationManager
 from src.backup_source import BackupManager
@@ -41,7 +41,7 @@ db_session = Session(engine)
 
 
 @app.task
-def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: str):
+def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: str, keep_n: Optional[int] = None):
     statement = select(Destination).where(
         and_(
             Destination.tenant_id == tenant_id,
@@ -77,7 +77,18 @@ def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: 
 
     try:
         remote_path = backup_destination_manager.upload_backup(local_path)
+        backups = backup_destination_manager.list_backups()
+
+        # sorted from oldest to newest
+        relevant_backups = sorted(filter(lambda backup: backup.source == backup_source.source_type, backups),
+                                  key=lambda x: x.modified)
+        
+        if keep_n:
+            for extra_backup in relevant_backups[:-keep_n]:
+                backup_destination_manager.delete_backup(extra_backup.path)
+
         return remote_path
+
 
     finally:
         if os.path.exists(local_path):
@@ -86,7 +97,7 @@ def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: 
 
 @app.task
 def list_backups(backup_destination_id: int, user_info: UserInfo):
-    user_info = UserInfo(**user_info)
+    user_info = UserInfo(**user_info)  # ty:ignore[invalid-argument-type]
 
     statement = select(Destination).where(
         and_(
@@ -110,7 +121,7 @@ def list_backups(backup_destination_id: int, user_info: UserInfo):
 
 @app.task
 def delete_backup(backup_destination_id: int, backup_path: str, user_info: UserInfo):
-    user_info = UserInfo(**user_info)
+    user_info = UserInfo(**user_info)  # ty:ignore[invalid-argument-type]
 
     statement = select(Destination).where(
         and_(
@@ -134,8 +145,8 @@ def delete_backup(backup_destination_id: int, backup_path: str, user_info: UserI
 
 @app.task
 def restore_from_backup(request: RestoreBackupRequest, user_info: UserInfo):
-    request = RestoreBackupRequest(**request)
-    user_info = UserInfo(**user_info)
+    request = RestoreBackupRequest(**request)  # ty:ignore[invalid-argument-type]
+    user_info = UserInfo(**user_info)  # ty:ignore[invalid-argument-type]
 
     statement = select(Destination).where(
         and_(

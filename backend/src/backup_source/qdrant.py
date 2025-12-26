@@ -64,14 +64,14 @@ class QdrantBackupManager(BaseBackupManager):
                 # Properly serialize vector config
                 vectors_config = collection_info.config.params.vectors
                 if hasattr(vectors_config, "model_dump"):
-                    vectors_dict = vectors_config.model_dump()
+                    vectors_dict = vectors_config.model_dump()  # ty:ignore[call-non-callable]
                 elif hasattr(vectors_config, "dict"):
-                    vectors_dict = vectors_config.dict()
+                    vectors_dict = vectors_config.dict()  # ty:ignore[call-non-callable]
                 else:
                     # Fallback: extract key attributes
                     vectors_dict = {
-                        "size": vectors_config.size,
-                        "distance": str(vectors_config.distance),
+                        "size": vectors_config.size,  # ty:ignore[possibly-missing-attribute]
+                        "distance": str(vectors_config.distance),  # ty:ignore[possibly-missing-attribute]
                     }
 
                 collection_data = {
@@ -101,7 +101,7 @@ class QdrantBackupManager(BaseBackupManager):
                         break
 
                     for point in points:
-                        collection_data["points"].append(
+                        collection_data["points"].append(  # ty:ignore[possibly-missing-attribute]
                             {
                                 "id": point.id,
                                 "vector": point.vector,

@@ -88,7 +88,7 @@ class VaultBackupManager(BaseBackupManager):
             }
 
             # Backup all secrets from KV v2 mount
-            self._list_secrets_recursive("", backup_data["secrets"])
+            self._list_secrets_recursive("", backup_data["secrets"])  # ty:ignore[invalid-argument-type]
 
             # Backup auth methods
             try:
@@ -106,7 +106,7 @@ class VaultBackupManager(BaseBackupManager):
                             policy_content = self.client.sys.read_policy(
                                 name=policy_name
                             )
-                            backup_data["policies"][policy_name] = policy_content.get(
+                            backup_data["policies"][policy_name] = policy_content.get(  # ty:ignore[invalid-assignment]
                                 "data", {}
                             ).get("rules", "")
                         except Exception:

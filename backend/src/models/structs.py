@@ -1,4 +1,19 @@
 from pydantic import BaseModel
+from typing import Optional
+
+class Credentials(BaseModel):
+    url: str
+    login: Optional[str] = None
+    password: Optional[str] = None
+    api_key: Optional[str] = None
+
+
+class BackupDetails(BaseModel):
+    name: str
+    path: str
+    source: str
+    size: float
+    modified: str
 
 
 class UserInfo(BaseModel):

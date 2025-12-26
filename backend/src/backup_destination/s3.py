@@ -39,7 +39,7 @@ class S3BackupDestination(BaseBackupDestinationManager):
 
         return bucket_name, prefix
 
-    def _initialize_s3_client(self) -> boto3.client:
+    def _initialize_s3_client(self) -> boto3.client:  # ty:ignore[invalid-type-form]
         """Initialize S3 compatible client with provided credentials
 
         Returns:
@@ -119,6 +119,7 @@ class S3BackupDestination(BaseBackupDestinationManager):
                         path=obj["Key"],
                         size=obj["Size"],
                         modified=obj["LastModified"].isoformat(),
+                        source=self._extract_backup_source(os.path.basename(obj["Key"]))
                     )
                     backups.append(backup)
 
@@ -141,7 +142,7 @@ class S3BackupDestination(BaseBackupDestinationManager):
         except Exception as e:
             raise RuntimeError(f"Failed to delete backup from S3: {str(e)}")
 
-    def get_backup(self, backup_path: str, local_path: str = None) -> str:
+    def get_backup(self, backup_path: str, local_path: Optional[str] = None) -> str:
         """Download/retrieve specified backup from S3 compatible bucket
 
         Args:

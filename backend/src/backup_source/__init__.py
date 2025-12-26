@@ -12,7 +12,7 @@ class BackupManager:
         self.credentials = credentials
 
     def create_from_type(
-        self, source_type: Literal["vault", "qdrant", "postgres", "elasticsearch"]
+        self, source_type: str
     ) -> BaseBackupManager:
         map_ = {
             "vault": VaultBackupManager,

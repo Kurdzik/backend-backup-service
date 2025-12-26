@@ -2,22 +2,12 @@ import inspect
 import os
 import uuid
 from typing import Optional
-
+import re
 from pydantic import BaseModel
+from src.models.structs import Credentials, BackupDetails
 
 
-class Credentials(BaseModel):
-    url: str
-    login: Optional[str] = None
-    password: Optional[str] = None
-    api_key: Optional[str] = None
 
-
-class BackupDetails(BaseModel):
-    name: str
-    path: str
-    size: float
-    modified: str
 
 
 class BaseBackupManager:
@@ -122,3 +112,13 @@ class BaseBackupDestinationManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
+    
+    @staticmethod
+    def _extract_backup_source(filename: str):
+        pattern = r"^(.+?)_backup"
+
+        match = re.search(pattern, filename)
+        if match:
+            source_name = match.group(1)
+
+        return source_name

@@ -69,7 +69,7 @@ class ScheduleManager:
         self._notify_scheduler_reload()
         return schedule_obj
 
-    def get_schedule(self, schedule_id: int, tenant_id: str) -> Optional[ScheduleModel]:
+    def get_schedule(self, schedule_id: int, tenant_id: str) -> ScheduleModel:
         """
         Get a schedule by ID
 
@@ -83,7 +83,7 @@ class ScheduleManager:
         statement = select(ScheduleModel).where(
             (ScheduleModel.id == schedule_id) & (ScheduleModel.tenant_id == tenant_id)
         )
-        return self.session.exec(statement).first()
+        return self.session.exec(statement).first()  # ty:ignore[invalid-return-type]
 
     def list_schedules(
         self, tenant_id: str, is_active: Optional[bool] = None
@@ -103,7 +103,7 @@ class ScheduleManager:
         if is_active is not None:
             statement = statement.where(ScheduleModel.is_active == is_active)
 
-        return self.session.exec(statement).all()
+        return self.session.exec(statement).all()  # ty:ignore[invalid-return-type]
 
     def update_schedule(
         self,
@@ -154,7 +154,7 @@ class ScheduleManager:
         if next_run is not None:
             schedule_obj.next_run = next_run
 
-        schedule_obj.updated_at = datetime.utcnow()
+        schedule_obj.updated_at = datetime.now()
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)
@@ -202,7 +202,7 @@ class ScheduleManager:
             return None
 
         schedule_obj.last_run = last_run
-        schedule_obj.updated_at = datetime.utcnow()
+        schedule_obj.updated_at = datetime.now()
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)
@@ -228,7 +228,7 @@ class ScheduleManager:
             return None
 
         schedule_obj.is_active = not schedule_obj.is_active
-        schedule_obj.updated_at = datetime.utcnow()
+        schedule_obj.updated_at = datetime.now()
         self.session.add(schedule_obj)
         self.session.commit()
         self.session.refresh(schedule_obj)

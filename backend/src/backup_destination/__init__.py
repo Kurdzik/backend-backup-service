@@ -11,7 +11,7 @@ class BackupDestinationManager:
         self.credentials = credentials
 
     def create_from_type(
-        self, source_type: Literal["s3", "local_fs", "sftp"]
+        self, source_type: str
     ) -> BaseBackupDestinationManager:
         map_ = {
             "s3": S3BackupDestination,

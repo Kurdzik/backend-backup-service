@@ -34,9 +34,9 @@ configure_logger()
 engine = create_engine(os.environ["DATABASE_URL"])
 app = FastAPI(title="Backend", redoc_url=None, default_response_class=ORJSONResponse)
 
-app.add_middleware(AuthMiddleware)
-app.add_middleware(ResponseTimeLoggingMiddleware)
-app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)
+app.add_middleware(AuthMiddleware)  # ty:ignore[invalid-argument-type]
+app.add_middleware(ResponseTimeLoggingMiddleware)  # ty:ignore[invalid-argument-type]
+app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)  # ty:ignore[invalid-argument-type]
 
 
 class ApiResponse(BaseModel):

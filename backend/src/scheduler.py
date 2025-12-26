@@ -33,13 +33,14 @@ def load_schedules_from_db():
     with Session(engine) as db_session:
         schedules = db_session.exec(select(Schedule)).all()
         for schedule in schedules:
-            schedule_dict[f"backup-schedule-{schedule.id}"] = {
+            schedule_dict[f"backup-schedule-{schedule.id}-{schedule.tenant_id}"] = {
                 "task": "src.worker.create_backup",
                 "schedule": parse_cron_exp(schedule.schedule),
                 "kwargs": {
                     "backup_source_id": schedule.source_id,
                     "backup_destination_id": schedule.destination_id,
                     "tenant_id": schedule.tenant_id,
+                    "keep_n": schedule.keep_n
                 },
             }
     return schedule_dict
@@ -59,4 +60,4 @@ class DynamicScheduler(Scheduler):
     def _reload(self, body: str, message: str):
         self.schedule.clear()
         self.merge_inplace(load_schedules_from_db())
-        message.ack()
+        message.ack()  # ty:ignore[unresolved-attribute]

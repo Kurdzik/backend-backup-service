@@ -128,6 +128,7 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
                     path=remote_path,
                     size=attr.st_size,
                     modified=datetime.fromtimestamp(attr.st_mtime).isoformat(),
+                    source=self._extract_backup_source(attr.filename)
                 )
                 backups.append(backup)
 
@@ -150,7 +151,7 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
         except Exception as e:
             raise RuntimeError(f"Failed to delete backup from SFTP: {str(e)}")
 
-    def get_backup(self, backup_path: str, local_path: str = None) -> str:
+    def get_backup(self, backup_path: str, local_path: Optional[str] = None) -> str:
         """Download/retrieve specified backup from SFTP server
 
         Args:

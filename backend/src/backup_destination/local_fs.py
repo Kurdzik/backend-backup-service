@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
+import re
 from src.base import BackupDetails, BaseBackupDestinationManager, Credentials
 
 
@@ -69,7 +69,11 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
             modified = datetime.fromtimestamp(stat_info.st_mtime).isoformat()
 
             backup = BackupDetails(
-                name=filename, path=filepath, size=size, modified=modified
+                name=filename, 
+                path=filepath, 
+                size=size, 
+                modified=modified,
+                source=self._extract_backup_source(filepath)
             )
             backups.append(backup)
 
@@ -92,7 +96,7 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
 
         os.remove(backup_path)
 
-    def get_backup(self, backup_path: str, local_path: str = None) -> str:
+    def get_backup(self, backup_path: str, local_path: Optional[str] = None) -> str:
         """Download/retrieve specified backup from local filesystem
 
         Args:
