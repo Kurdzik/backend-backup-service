@@ -1,4 +1,5 @@
 import { removeAuthCookie, getAuthCookie } from "@/lib/cookies";
+import type { ApiResponse } from "./types";
 
 const conf = {
   backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || "NO BACKEND URL PROVIDED",
@@ -36,7 +37,7 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-export async function get(endpoint: string, secure: boolean = true) {
+export async function get(endpoint: string, secure: boolean = true): Promise<ApiResponse> {
   const url = `${conf.backendUrl}/api/${conf.apiVersion}/${endpoint}`;
   const options = {
     method: "GET",
@@ -54,7 +55,7 @@ export async function post(
   endpoint: string,
   requestBody?: any,
   secure: boolean = true,
-) {
+): Promise<ApiResponse> {
   const url = `${conf.backendUrl}/api/${conf.apiVersion}/${endpoint}`;
   const options = {
     method: "POST",
@@ -73,7 +74,7 @@ export async function put(
   endpoint: string,
   requestBody?: any,
   secure: boolean = true,
-) {
+): Promise<ApiResponse> {
   const url = `${conf.backendUrl}/api/${conf.apiVersion}/${endpoint}`;
   const options = {
     method: "PUT",
@@ -88,7 +89,7 @@ export async function put(
     });
 }
 
-export async function del(endpoint: string, secure: boolean = true) {
+export async function del(endpoint: string, secure: boolean = true): Promise<ApiResponse> {
   const url = `${conf.backendUrl}/api/${conf.apiVersion}/${endpoint}`;
   const options = {
     method: "DELETE",

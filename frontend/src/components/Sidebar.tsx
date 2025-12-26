@@ -74,6 +74,7 @@ const bottomItems = [
   {
     icon: <IconUser size={16} stroke={1.5} />,
     label: "User Information",
+    route: "/ui/user_info",
   },
   {
     icon: <IconLogout size={16} stroke={1.5} />,
@@ -329,6 +330,7 @@ export const SidebarComponent = () => {
                 icon={item.icon}
                 label={item.label}
                 active={activeItem === item.label}
+                href={item.route}
                 collapsed={collapsed}
                 onClick={() => {
                   if (item.label === "Logout") {
