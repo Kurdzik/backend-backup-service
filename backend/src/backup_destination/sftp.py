@@ -128,7 +128,9 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
                     path=remote_path,
                     size=attr.st_size,
                     modified=datetime.fromtimestamp(attr.st_mtime).isoformat(),
-                    source=self._extract_backup_source(attr.filename)
+                    source=self._extract_backup_source(attr.filename),
+                    source_id=self._extract_backup_source_id(attr.filename)
+
                 )
                 backups.append(backup)
 

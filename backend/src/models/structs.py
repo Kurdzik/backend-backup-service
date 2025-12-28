@@ -12,6 +12,7 @@ class BackupDetails(BaseModel):
     name: str
     path: str
     source: str
+    source_id: int
     size: float
     modified: str
 

@@ -71,7 +71,7 @@ class VaultBackupManager(BaseBackupManager):
         except Exception:
             pass
 
-    def create_backup(self) -> str:
+    def create_backup(self, backup_source_id: int) -> str:
         """Create backup of all Vault secrets and configurations
 
         Returns:
@@ -121,7 +121,7 @@ class VaultBackupManager(BaseBackupManager):
 
             # Create tar.gz archive
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"vault_backup_{timestamp}.tar.gz"
+            backup_path = f"vault_backup_{backup_source_id}_{timestamp}.tar.gz"
 
             with tarfile.open(backup_path, "w:gz") as tar:
                 tar.add(temp_dir, arcname="vault_backup")

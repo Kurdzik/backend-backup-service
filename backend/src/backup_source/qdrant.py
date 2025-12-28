@@ -41,7 +41,7 @@ class QdrantBackupManager(BaseBackupManager):
             print(f"Connection test failed: {str(e)}")
             return False
 
-    def create_backup(self) -> str:
+    def create_backup(self, backup_source_id: int) -> str:
         """Create backup of all Qdrant collections
 
         Returns:
@@ -120,7 +120,7 @@ class QdrantBackupManager(BaseBackupManager):
 
             # Create tar.gz archive
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"qdrant_backup_{timestamp}.tar.gz"
+            backup_path = f"qdrant_backup_{backup_source_id}_{timestamp}.tar.gz"
 
             with tarfile.open(backup_path, "w:gz") as tar:
                 tar.add(temp_dir, arcname="qdrant_backup")

@@ -73,7 +73,7 @@ def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: 
         )
     ).create_from_type(backup_destination.destination_type)
 
-    local_path = backup_manager.create_backup()
+    local_path = backup_manager.create_backup(backup_source_id)
 
     try:
         remote_path = backup_destination_manager.upload_backup(local_path)

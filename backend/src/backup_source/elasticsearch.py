@@ -22,7 +22,7 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 [credentials.url], basic_auth=(credentials.login, credentials.password)
             )
 
-    def create_backup(self) -> str:
+    def create_backup(self, backup_source_id: int) -> str:
         """Create backup of all Elasticsearch indexes
 
         Returns:
@@ -67,7 +67,8 @@ class ElasticsearchBackupManager(BaseBackupManager):
 
             # Create tar.gz archive
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"elasticsearch_backup_{timestamp}.tar.gz"
+            # Naming: <source-name>_backup_<source-id>_<timestamp>
+            backup_path = f"elasticsearch_backup_{backup_source_id}_{timestamp}.tar.gz"
 
             with tarfile.open(backup_path, "w:gz") as tar:
                 tar.add(temp_dir, arcname="elasticsearch_backup")

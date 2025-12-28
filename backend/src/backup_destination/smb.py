@@ -125,6 +125,9 @@ class SMBBackupDestination(BaseBackupDestinationManager):
                         path=remote_path,
                         size=stat_info.st_size,
                         modified=datetime.fromtimestamp(stat_info.st_mtime).isoformat(),
+                        source=self._extract_backup_source_id(entry),
+                        source_id=self._extract_backup_source_id(entry)
+
                     )
                     backups.append(backup)
                 except Exception:

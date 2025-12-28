@@ -14,7 +14,7 @@ class BaseBackupManager:
     def __init__(self, credentials: Credentials) -> None:
         self.credentials = credentials
 
-    def create_backup(self) -> str:
+    def create_backup(self, backup_source_id: int) -> str:
         """Create backup from source using provided credentials
 
         Returns:
@@ -40,7 +40,7 @@ class BaseBackupManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
-
+    
 
 class BaseBackupDestinationManager:
     def __init__(self, credentials: Credentials) -> None:
@@ -115,10 +115,26 @@ class BaseBackupDestinationManager:
     
     @staticmethod
     def _extract_backup_source(filename: str):
+        basename = filename.split('/')[-1]
+        
         pattern = r"^(.+?)_backup"
-
-        match = re.search(pattern, filename)
+        
+        match = re.search(pattern, basename)
         if match:
             source_name = match.group(1)
+            return source_name
+        
+        return None
 
-        return source_name
+    @staticmethod
+    def _extract_backup_source_id(filename: str):
+        basename = filename.split('/')[-1]
+        
+        pattern = r"^.+?_backup_(\d+)_"
+        
+        match = re.search(pattern, basename)
+        if match:
+            backup_source_id = match.group(1)
+            return backup_source_id
+        
+        return None
