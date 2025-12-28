@@ -28,13 +28,26 @@ const createHeaders = (secure: boolean = true): Record<string, string> => {
   return headers;
 };
 
-const handleResponse = async (response: Response) => {
+const handleResponse = async (response: Response): Promise<ApiResponse> => {
+  const data = await response.json();
+
   if (response.status === 401) {
     handleUnauthorized();
     throw new Error("Unauthorized - redirecting to login");
   }
 
-  return response.json();
+  // Include status code in response
+  const apiResponse: ApiResponse = {
+    ...data,
+    status: response.status,
+  };
+
+  // Add error field if response is not successful
+  if (!response.ok) {
+    apiResponse.detail = data.detail;
+  }
+
+  return apiResponse;
 };
 
 export async function get(endpoint: string, secure: boolean = true): Promise<ApiResponse> {

@@ -11,7 +11,6 @@ import {
   Paper,
   Box,
   rem,
-  Alert,
   Flex,
   Group,
   Progress,
@@ -20,7 +19,6 @@ import {
   IconUser,
   IconLock,
   IconUserPlus,
-  IconInfoCircle,
   IconDatabase,
   IconArrowRight,
   IconCheck,
@@ -29,6 +27,7 @@ import {
 import { post } from "@/lib/backendRequests";
 import { setAuthCookie } from "@/lib/cookies";
 import { ApiResponse } from "@/lib/types";
+import { DisplayNotification } from "@/components/Notifications/component";
 
 interface FormData {
   username: string;
@@ -38,6 +37,11 @@ interface FormData {
 
 interface LoginData {
   session_token: string;
+}
+
+interface NotificationState {
+  message: string;
+  statusCode: number;
 }
 
 interface RegisterProps {
@@ -62,8 +66,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
     password2: "",
   });
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [notification, setNotification] = useState<NotificationState | null>(null);
 
   const handleFormDataChange = <K extends keyof FormData>(
     field: K,
@@ -103,14 +106,13 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
   const handleRegister = async (): Promise<void> => {
     const validationError = validateForm();
     if (validationError) {
-      setError(validationError);
+      setNotification({ message: validationError, statusCode: 400 });
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
-      setSuccess(null);
+      setNotification(null);
 
       const response: ApiResponse<LoginData> = await post(
         "users/register",
@@ -122,15 +124,17 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
         false,
       );
 
-      if (response.data?.session_token) {
-        setSuccess(response.message || "Registration successful");
+      if (response.status === 200 && response.data?.session_token) {
+        setNotification({ message: response.message || "Registration successful", statusCode: response.status });
         setAuthCookie(response.data.session_token);
-        window.location.href = "/ui/connected_apps";
+        setTimeout(() => {
+          window.location.href = "/ui/connected_apps";
+        }, 1000);
       } else {
-        setError(response.message || "Registration failed");
+        setNotification({ message: response.message || "Registration failed", statusCode: response.status || 400 });
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred during registration");
+      setNotification({ message: err.message || "An error occurred during registration", statusCode: 500 });
       console.error("Registration error:", err);
     } finally {
       setLoading(false);
@@ -210,36 +214,12 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
             </Text>
           </Box>
 
-          {/* Error Alert */}
-          {error && (
-            <Alert
-              icon={<IconInfoCircle size={16} />}
-              color="error"
-              radius={0}
-              style={{
-                backgroundColor: "var(--mantine-color-error-0)",
-                border: "1px solid var(--mantine-color-error-2)",
-                color: "var(--mantine-color-error-7)",
-              }}
-            >
-              {error}
-            </Alert>
-          )}
-
-          {/* Success Alert */}
-          {success && (
-            <Alert
-              icon={<IconCheck size={16} />}
-              color="green"
-              radius={0}
-              style={{
-                backgroundColor: "var(--mantine-color-green-0)",
-                border: "1px solid var(--mantine-color-green-2)",
-                color: "var(--mantine-color-green-7)",
-              }}
-            >
-              {success}
-            </Alert>
+          {/* Notification */}
+          {notification && (
+            <DisplayNotification 
+              message={notification.message} 
+              statusCode={notification.statusCode} 
+            />
           )}
 
           {/* Form */}
@@ -258,6 +238,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                 handleFormDataChange("username", event.currentTarget.value)
               }
               onKeyPress={handleKeyPress}
+              disabled={loading}
               styles={{
                 label: {
                   color: "var(--mantine-color-slate-7)",
@@ -293,6 +274,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                   handleFormDataChange("password", event.currentTarget.value)
                 }
                 onKeyPress={handleKeyPress}
+                disabled={loading}
                 styles={{
                   label: {
                     color: "var(--mantine-color-slate-7)",
@@ -363,6 +345,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                 handleFormDataChange("password2", event.currentTarget.value)
               }
               onKeyPress={handleKeyPress}
+              disabled={loading}
               styles={{
                 label: {
                   color: "var(--mantine-color-slate-7)",
@@ -392,7 +375,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
               rightSection={<IconUserPlus size={16} />}
               onClick={handleRegister}
               loading={loading}
-              disabled={!isFormValid()}
+              disabled={!isFormValid() || loading}
               mt="md"
               color="slate"
               styles={{
@@ -430,6 +413,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                 onClick={() => {
                   window.location.href = "/login";
                 }}
+                disabled={loading}
                 styles={{
                   root: {
                     color: "var(--mantine-color-slate-6)",
