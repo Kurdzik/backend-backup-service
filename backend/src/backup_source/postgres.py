@@ -34,7 +34,9 @@ class PostgresBackupManager(BaseBackupManager):
 
         return {k: v for k, v in params.items() if v is not None}
 
-    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
+    def create_backup(
+        self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None
+    ) -> str:
         """Create backup of all Postgres databases using pg_dump
 
         Returns:

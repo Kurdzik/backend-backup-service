@@ -71,7 +71,9 @@ class VaultBackupManager(BaseBackupManager):
         except Exception:
             pass
 
-    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
+    def create_backup(
+        self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None
+    ) -> str:
         """Create backup of all Vault secrets and configurations
 
         Returns:

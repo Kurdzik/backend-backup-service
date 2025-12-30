@@ -11,9 +11,7 @@ class BackupManager:
     def __init__(self, credentials: Credentials):
         self.credentials = credentials
 
-    def create_from_type(
-        self, source_type: str
-    ) -> BaseBackupManager:
+    def create_from_type(self, source_type: str) -> BaseBackupManager:
         map_ = {
             "vault": VaultBackupManager,
             "qdrant": QdrantBackupManager,

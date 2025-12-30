@@ -26,7 +26,12 @@ from src.models.db import Destination
 from src.models.db import Session as AuthSession
 from src.models.db import Source, User, Logs
 from src.utils import UserInfo, get_db_session, get_user_info
-from src.services.worker import create_backup, delete_backup, list_backups, restore_from_backup
+from src.services.worker import (
+    create_backup,
+    delete_backup,
+    list_backups,
+    restore_from_backup,
+)
 from fastapi.middleware.cors import CORSMiddleware
 import docker
 
@@ -53,7 +58,6 @@ app.add_middleware(
 class ApiResponse(BaseModel):
     message: str
     data: dict[str, Any] = Field(default_factory=dict)
-
 
 
 # =========== USER MANAGEMENT ===========
@@ -86,6 +90,7 @@ class UpdateBackupSourceRequest(BaseModel):
     source_name: Optional[str] = None
     credentials: Optional[Credentials] = None
 
+
 class AddBackupDestinationRequest(BaseModel):
     destination_type: Literal["s3", "local_fs", "sftp"]
     destination_name: Optional[str] = None
@@ -100,13 +105,13 @@ class UpdateBackupDestinationRequest(BaseModel):
     config: Optional[dict[str, str]] = None
 
 
-
 class CreateScheduleBackupRequest(BaseModel):
     schedule_name: str
     backup_source_id: int
     backup_destination_id: int
     backup_schedule: str
     keep_n: int
+
 
 class UpdateScheduleBackupRequest(BaseModel):
     schedule_id: int
@@ -165,14 +170,18 @@ def login(
     ).first()
 
     if not user:
-        logger.warning("login_failed", username=request.username, reason="invalid_credentials")
+        logger.warning(
+            "login_failed", username=request.username, reason="invalid_credentials"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Wrong username or password",
         )
 
     if not user.is_active:
-        logger.warning("login_failed", username=request.username, reason="account_disabled")
+        logger.warning(
+            "login_failed", username=request.username, reason="account_disabled"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is disabled"
         )
@@ -220,7 +229,11 @@ def reset_password(
         )
 
     if user.password != request.old_password:
-        logger.warning("password_change_failed", username=request.username, reason="incorrect_old_password")
+        logger.warning(
+            "password_change_failed",
+            username=request.username,
+            reason="incorrect_old_password",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Old password is incorrect",
@@ -247,20 +260,18 @@ def get_system_logs(
     user_info: UserInfo = Depends(get_user_info),
 ):
     try:
-        statement = select(Logs).where(Logs.tenant_id==user_info.tenant_id)
+        statement = select(Logs).where(Logs.tenant_id == user_info.tenant_id)
 
         logs = db_session.exec(statement).all()
 
-        return ApiResponse(
-            message="Logs retrieved successfully", data={"logs":logs}
-        )
+        return ApiResponse(message="Logs retrieved successfully", data={"logs": logs})
 
     except Exception as e:
         with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
             logger.error("failed_to_retrieve_docker_logs", error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve system logs"
+            detail="Failed to retrieve system logs",
         )
 
 
@@ -332,7 +343,12 @@ def delete_backup_source(
             logger.info("backup_source_deleted", source_id=source_id)
             return ApiResponse(message="Backup source deleted successfully")
         except Exception as e:
-            logger.error("failed_to_delete_backup_source", source_id=source_id, error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_delete_backup_source",
+                source_id=source_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
 
@@ -369,7 +385,12 @@ def update_backup_source(
             logger.info("backup_source_updated", source_id=request.source_id)
             return ApiResponse(message="Backup source updated successfully")
         except Exception as e:
-            logger.error("failed_to_update_backup_source", source_id=request.source_id, error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_update_backup_source",
+                source_id=request.source_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
 
@@ -399,20 +420,30 @@ def test_connection_backup_source(
             ).create_from_type(source.source_type)
 
             if backup_manager.test_connection():
-                logger.info("backup_source_connection_test_success", source_id=source_id)
+                logger.info(
+                    "backup_source_connection_test_success", source_id=source_id
+                )
                 return ApiResponse(message="Backup source configuration success")
             else:
-                logger.warning("backup_source_connection_test_failed", source_id=source_id)
+                logger.warning(
+                    "backup_source_connection_test_failed", source_id=source_id
+                )
                 raise HTTPException(400, detail="Could not reach backup source")
         except HTTPException:
             raise
         except Exception as e:
-            logger.error("backup_source_connection_test_error", source_id=source_id, error=str(e), exc_info=True)
+            logger.error(
+                "backup_source_connection_test_error",
+                source_id=source_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise HTTPException(500, detail="Error testing backup source connection")
 
 
 # / =========== BACKUP SOURCE ===========
 # =========== BACKUP DESTINATION ===========
+
 
 @app.post("/api/v1/backup-destinations/add", response_model=ApiResponse)
 def add_backup_destination(
@@ -437,10 +468,14 @@ def add_backup_destination(
                 )
             )
 
-            logger.info("backup_destination_added", destination_type=request.destination_type)
+            logger.info(
+                "backup_destination_added", destination_type=request.destination_type
+            )
             return ApiResponse(message="Backup destination added successfully")
         except Exception as e:
-            logger.error("failed_to_add_backup_destination", error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_add_backup_destination", error=str(e), exc_info=True
+            )
             raise
 
 
@@ -480,7 +515,12 @@ def delete_backup_destination(
             logger.info("backup_destination_deleted", destination_id=destination_id)
             return ApiResponse(message="Backup destination deleted successfully")
         except Exception as e:
-            logger.error("failed_to_delete_backup_destination", destination_id=destination_id, error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_delete_backup_destination",
+                destination_id=destination_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
 
@@ -517,10 +557,17 @@ def update_backup_destination(
             if request.config is not None:
                 destination.config = request.config
 
-            logger.info("backup_destination_updated", destination_id=request.destination_id)
+            logger.info(
+                "backup_destination_updated", destination_id=request.destination_id
+            )
             return ApiResponse(message="Backup destination updated successfully")
         except Exception as e:
-            logger.error("failed_to_update_backup_destination", destination_id=request.destination_id, error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_update_backup_destination",
+                destination_id=request.destination_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
 
@@ -551,16 +598,29 @@ def test_connection_backup_destination(
             ).create_from_type(destination.destination_type)
 
             if backup_destination_manager.test_connection():
-                logger.info("backup_destination_connection_test_success", destination_id=destination_id)
+                logger.info(
+                    "backup_destination_connection_test_success",
+                    destination_id=destination_id,
+                )
                 return ApiResponse(message="Backup destination configuration success")
             else:
-                logger.warning("backup_destination_connection_test_failed", destination_id=destination_id)
+                logger.warning(
+                    "backup_destination_connection_test_failed",
+                    destination_id=destination_id,
+                )
                 raise HTTPException(400, detail="Could not reach backup destination")
         except HTTPException:
             raise
         except Exception as e:
-            logger.error("backup_destination_connection_test_error", destination_id=destination_id, error=str(e), exc_info=True)
-            raise HTTPException(500, detail="Error testing backup destination connection")
+            logger.error(
+                "backup_destination_connection_test_error",
+                destination_id=destination_id,
+                error=str(e),
+                exc_info=True,
+            )
+            raise HTTPException(
+                500, detail="Error testing backup destination connection"
+            )
 
 
 # / =========== BACKUP DESTINATION ===========
@@ -574,10 +634,12 @@ def create_backup_from_source(
     user_info: UserInfo = Depends(get_user_info),
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
-        logger.info("backup_creation_queued", 
-                   backup_source_id=backup_source_id,
-                   backup_destination_id=backup_destination_id)
-        
+        logger.info(
+            "backup_creation_queued",
+            backup_source_id=backup_source_id,
+            backup_destination_id=backup_destination_id,
+        )
+
         create_backup.apply_async(
             kwargs={
                 "backup_source_id": backup_source_id,
@@ -620,10 +682,12 @@ def delete_backup_from_destination(
     user_info: UserInfo = Depends(get_user_info),
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
-        logger.info("backup_deletion_queued",
-                   backup_destination_id=backup_destination_id,
-                   backup_path=backup_path)
-        
+        logger.info(
+            "backup_deletion_queued",
+            backup_destination_id=backup_destination_id,
+            backup_path=backup_path,
+        )
+
         delete_backup.apply_async(
             kwargs={
                 "backup_destination_id": backup_destination_id,
@@ -642,13 +706,18 @@ def restore_backup_to_source(
     user_info: UserInfo = Depends(get_user_info),
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
-        logger.info("restore_queued",
-                   backup_source_id=request.backup_source_id,
-                   backup_destination_id=request.backup_destination_id)
-        
+        logger.info(
+            "restore_queued",
+            backup_source_id=request.backup_source_id,
+            backup_destination_id=request.backup_destination_id,
+        )
+
         try:
             result = restore_from_backup.apply_async(
-                kwargs={"request": request.model_dump(), "user_info": user_info.model_dump()},
+                kwargs={
+                    "request": request.model_dump(),
+                    "user_info": user_info.model_dump(),
+                },
                 ignore_result=False,
             )
 
@@ -669,7 +738,7 @@ def restore_backup_to_source(
             logger.error("restore_task_error", error=str(e), exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to restore backup"
+                detail="Failed to restore backup",
             )
 
 
@@ -699,10 +768,12 @@ def add_backup_schedule(
                 is_active=True,
             )
 
-            logger.info("backup_schedule_added",
-                       backup_source_id=request.backup_source_id,
-                       backup_destination_id=request.backup_destination_id,
-                       schedule=request.backup_schedule)
+            logger.info(
+                "backup_schedule_added",
+                backup_source_id=request.backup_source_id,
+                backup_destination_id=request.backup_destination_id,
+                schedule=request.backup_schedule,
+            )
 
             return ApiResponse(message="Backup schedule added successfully")
         except Exception as e:
@@ -720,11 +791,16 @@ def delete_backup_schedule(
         try:
             schedule_manager = ScheduleManager(db_session)
             schedule_manager.delete_schedule(schedule_id, user_info.tenant_id)
-            
+
             logger.info("backup_schedule_deleted", schedule_id=schedule_id)
             return ApiResponse(message="Backup schedule deleted successfully")
         except Exception as e:
-            logger.error("failed_to_delete_backup_schedule", schedule_id=schedule_id, error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_delete_backup_schedule",
+                schedule_id=schedule_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
 
@@ -755,7 +831,12 @@ def update_backup_schedules(
             logger.info("backup_schedule_updated", schedule_id=request.schedule_id)
             return ApiResponse(message="Backup schedule added successfully")
         except Exception as e:
-            logger.error("failed_to_update_backup_schedule", schedule_id=request.schedule_id, error=str(e), exc_info=True)
+            logger.error(
+                "failed_to_update_backup_schedule",
+                schedule_id=request.schedule_id,
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
 
@@ -768,7 +849,10 @@ def list_backup_schedules(
 
     schedules = schedule_manager.list_schedules(tenant_id=user_info.tenant_id)
 
-    return ApiResponse(message="Backup schedules retrieved successfully", data={"backup_schedules":schedules})
+    return ApiResponse(
+        message="Backup schedules retrieved successfully",
+        data={"backup_schedules": schedules},
+    )
 
 
 # / =========== SCHEDULING BACKUPS ===========

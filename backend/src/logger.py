@@ -16,21 +16,21 @@ _tenant_context: ContextVar[Optional[dict]] = ContextVar("tenant_context", defau
 
 class DatabaseHandler(logging.Handler):
     """Custom logging handler that writes logs to the database."""
-    
+
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
-    
+
     def emit(self, record):
         try:
             # Get tenant info from context
             context = _tenant_context.get()
             if not context:
                 return  # Skip logging if no tenant context
-            
+
             tenant_id = context.get("tenant_id")
             service_name = context.get("service_name", "unknown")
-            
+
             log_entry = Logs(
                 tenant_id=tenant_id,
                 service_name=service_name,
@@ -46,7 +46,7 @@ class DatabaseHandler(logging.Handler):
 
 def configure_logger(engine, service_name: str = "default"):
     """Configure structlog once at application startup."""
-    
+
     def add_context(logger, method_name, event_dict):
         """Add tenant_id from context to log dict."""
         context = _tenant_context.get()
@@ -54,7 +54,7 @@ def configure_logger(engine, service_name: str = "default"):
             event_dict["tenant_id"] = context.get("tenant_id")
             event_dict["service_name"] = context.get("service_name", service_name)
         return event_dict
-    
+
     structlog.configure(
         processors=[
             add_context,  # Add tenant context first
@@ -77,7 +77,7 @@ def configure_logger(engine, service_name: str = "default"):
         stream=sys.stdout,
         level=logging.INFO,
     )
-    
+
     # Add database handler
     db_handler = DatabaseHandler(engine)
     logging.root.addHandler(db_handler)
@@ -91,7 +91,7 @@ def get_logger(name: str = __name__):
 @contextmanager
 def tenant_context(tenant_id: str, service_name: str = "default"):
     """Context manager for setting tenant context.
-    
+
     Usage:
         with tenant_context(tenant_id="user-123"):
             logger.info("user_action")  # tenant_id will be included

@@ -69,15 +69,14 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
             modified = datetime.fromtimestamp(stat_info.st_mtime).isoformat()
 
             backup = BackupDetails(
-                name=filename, 
-                path=filepath, 
-                size=size, 
+                name=filename,
+                path=filepath,
+                size=size,
                 modified=modified,
                 source=self._parse_filename(filepath)["source"],
                 tenant_id=self._parse_filename(filepath)["tenant_id"],
                 schedule_id=self._parse_filename(filepath)["schedule_id"],
                 source_id=self._parse_filename(filepath)["source_id"],
-
             )
             backups.append(backup)
 

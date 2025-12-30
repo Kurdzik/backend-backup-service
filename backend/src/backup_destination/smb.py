@@ -43,7 +43,9 @@ class SMBBackupDestination(BaseBackupDestinationManager):
             host = host_port
 
         if not host or not share:
-            raise ValueError("Host and share are required in SMB URL (format: smb://host/share/path)")
+            raise ValueError(
+                "Host and share are required in SMB URL (format: smb://host/share/path)"
+            )
 
         return host, share, remote_dir
 
@@ -58,7 +60,9 @@ class SMBBackupDestination(BaseBackupDestinationManager):
             )
 
             # Ensure remote directory exists
-            smb_path = f"\\\\{self.host}\\{self.share}{self.remote_dir.replace('/', '\\')}"
+            smb_path = (
+                f"\\\\{self.host}\\{self.share}{self.remote_dir.replace('/', '\\')}"
+            )
             try:
                 smbclient.mkdir(smb_path, exist_ok=True)
             except Exception:
@@ -129,7 +133,6 @@ class SMBBackupDestination(BaseBackupDestinationManager):
                         tenant_id=self._parse_filename(entry)["tenant_id"],
                         schedule_id=self._parse_filename(entry)["schedule_id"],
                         source_id=self._parse_filename(entry)["source_id"],
-
                     )
                     backups.append(backup)
                 except Exception:

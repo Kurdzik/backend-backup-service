@@ -132,7 +132,6 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
                     tenant_id=self._parse_filename(attr.filename)["tenant_id"],
                     schedule_id=self._parse_filename(attr.filename)["schedule_id"],
                     source_id=self._parse_filename(attr.filename)["source_id"],
-
                 )
                 backups.append(backup)
 

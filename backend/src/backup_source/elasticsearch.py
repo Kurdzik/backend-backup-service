@@ -22,7 +22,9 @@ class ElasticsearchBackupManager(BaseBackupManager):
                 [credentials.url], basic_auth=(credentials.login, credentials.password)
             )
 
-    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
+    def create_backup(
+        self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None
+    ) -> str:
         """Create backup of all Elasticsearch indexes
 
         Returns:

@@ -41,7 +41,7 @@ def load_schedules_from_db():
                     "backup_destination_id": schedule.destination_id,
                     "tenant_id": schedule.tenant_id,
                     "schedule_id": schedule.id,
-                    "keep_n": schedule.keep_n
+                    "keep_n": schedule.keep_n,
                 },
             }
     return schedule_dict

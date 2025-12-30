@@ -10,9 +10,7 @@ class BackupDestinationManager:
     def __init__(self, credentials: Credentials):
         self.credentials = credentials
 
-    def create_from_type(
-        self, source_type: str
-    ) -> BaseBackupDestinationManager:
+    def create_from_type(self, source_type: str) -> BaseBackupDestinationManager:
         map_ = {
             "s3": S3BackupDestination,
             "local_fs": LocalFSBackupDestination,

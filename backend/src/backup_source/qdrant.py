@@ -41,7 +41,9 @@ class QdrantBackupManager(BaseBackupManager):
             print(f"Connection test failed: {str(e)}")
             return False
 
-    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
+    def create_backup(
+        self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None
+    ) -> str:
         """Create backup of all Qdrant collections
 
         Returns:

@@ -7,14 +7,13 @@ from pydantic import BaseModel
 from src.models.structs import Credentials, BackupDetails
 
 
-
-
-
 class BaseBackupManager:
     def __init__(self, credentials: Credentials) -> None:
         self.credentials = credentials
 
-    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
+    def create_backup(
+        self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None
+    ) -> str:
         """Create backup from source using provided credentials
 
         Returns:
@@ -40,7 +39,7 @@ class BaseBackupManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
-    
+
 
 class BaseBackupDestinationManager:
     def __init__(self, credentials: Credentials) -> None:
@@ -112,26 +111,26 @@ class BaseBackupDestinationManager:
         raise NotImplementedError(
             f"Method {inspect.currentframe().f_code.co_name} is not implemented"  # type: ignore
         )
-    
+
     @staticmethod
     def _parse_filename(filename: str):
         """Parse backup filename and extract info"""
         filename = os.path.basename(filename)
 
-        pattern = r'^(\w+)_backup_usr=([a-f0-9\-]+)_sch=(\d+|None)_src=(\d+)_created_at=(\d+_\d+)\.(.+)$'
-        
+        pattern = r"^(\w+)_backup_usr=([a-f0-9\-]+)_sch=(\d+|None)_src=(\d+)_created_at=(\d+_\d+)\.(.+)$"
+
         match = re.match(pattern, filename)
-        
+
         if not match:
             raise ValueError(f"Invalid backup filename format: {filename}")
-        
+
         source, tenant_id, schedule_id, source_id, timestamp, extension = match.groups()
-        
+
         return {
-            'source': source,
-            'tenant_id': tenant_id,
-            'schedule_id': schedule_id,
-            'source_id': source_id,
-            'timestamp': timestamp,
-            'extension': extension
+            "source": source,
+            "tenant_id": tenant_id,
+            "schedule_id": schedule_id,
+            "source_id": source_id,
+            "timestamp": timestamp,
+            "extension": extension,
         }
