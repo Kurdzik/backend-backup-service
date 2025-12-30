@@ -119,9 +119,10 @@ class S3BackupDestination(BaseBackupDestinationManager):
                         path=obj["Key"],
                         size=obj["Size"],
                         modified=obj["LastModified"].isoformat(),
-                        source=self._extract_backup_source(os.path.basename(obj["Key"])),
-                        source_id=self._extract_backup_source_id(os.path.basename(obj["Key"]))
-
+                        source=self._parse_filename(os.path.basename(obj["Key"]))["source"],
+                        source_id=self._parse_filename(os.path.basename(obj["Key"]))["source_id"],
+                        tenant_id=self._parse_filename(os.path.basename(obj["Key"]))["tenant_id"],
+                        schedule_id=self._parse_filename(os.path.basename(obj["Key"]))["schedule_id"],
                     )
                     backups.append(backup)
 

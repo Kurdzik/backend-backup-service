@@ -34,14 +34,14 @@ class PostgresBackupManager(BaseBackupManager):
 
         return {k: v for k, v in params.items() if v is not None}
 
-    def create_backup(self, backup_source_id: int) -> str:
+    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
         """Create backup of all Postgres databases using pg_dump
 
         Returns:
             str: Path to the locally created backup file
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_path = f"postgres_backup_{backup_source_id}_{timestamp}.sql"
+        backup_path = f"postgres_backup_usr={tenant_id}_sch={schedule_id}_src={backup_source_id}_created_at={timestamp}.sql"
 
         # Build pg_dump command
         env = os.environ.copy()

@@ -73,8 +73,11 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
                 path=filepath, 
                 size=size, 
                 modified=modified,
-                source=self._extract_backup_source(filepath),
-                source_id=self._extract_backup_source_id(filepath)
+                source=self._parse_filename(filepath)["source"],
+                tenant_id=self._parse_filename(filepath)["tenant_id"],
+                schedule_id=self._parse_filename(filepath)["schedule_id"],
+                source_id=self._parse_filename(filepath)["source_id"],
+
             )
             backups.append(backup)
 

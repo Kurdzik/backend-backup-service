@@ -14,7 +14,7 @@ class BaseBackupManager:
     def __init__(self, credentials: Credentials) -> None:
         self.credentials = credentials
 
-    def create_backup(self, backup_source_id: int) -> str:
+    def create_backup(self, tenant_id: str, backup_source_id: int, schedule_id: Optional[int] = None) -> str:
         """Create backup from source using provided credentials
 
         Returns:
@@ -114,27 +114,23 @@ class BaseBackupDestinationManager:
         )
     
     @staticmethod
-    def _extract_backup_source(filename: str):
-        basename = filename.split('/')[-1]
+    def _parse_filename(filename: str):
+        """Parse backup filename and extract info"""
+        filename = os.path.basename(filename)
+        pattern = r'^(\w+)_backup_usr=([a-f0-9\-]+)_sch=(\d+)_src=(\d+)_created_at=(\d+_\d+)\.(.+)$'
         
-        pattern = r"^(.+?)_backup"
+        match = re.match(pattern, filename)
         
-        match = re.search(pattern, basename)
-        if match:
-            source_name = match.group(1)
-            return source_name
+        if not match:
+            raise ValueError(f"Invalid backup filename format: {filename}")
         
-        return None
-
-    @staticmethod
-    def _extract_backup_source_id(filename: str):
-        basename = filename.split('/')[-1]
+        source, tenant_id, schedule_id, source_id, timestamp, extension = match.groups()
         
-        pattern = r"^.+?_backup_(\d+)_"
-        
-        match = re.search(pattern, basename)
-        if match:
-            backup_source_id = match.group(1)
-            return backup_source_id
-        
-        return None
+        return {
+            'source': source,
+            'tenant_id': tenant_id,
+            'schedule_id': schedule_id,
+            'source_id': source_id,
+            'timestamp': timestamp,
+            'extension': extension
+        }

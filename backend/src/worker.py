@@ -41,7 +41,7 @@ db_session = Session(engine)
 
 
 @app.task
-def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: str, keep_n: Optional[int] = None):
+def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: str, schedule_id: Optional[int] = None, keep_n: Optional[int] = None):
     statement = select(Destination).where(
         and_(
             Destination.tenant_id == tenant_id,
@@ -73,7 +73,7 @@ def create_backup(backup_source_id: int, backup_destination_id: int, tenant_id: 
         )
     ).create_from_type(backup_destination.destination_type)
 
-    local_path = backup_manager.create_backup(backup_source_id)
+    local_path = backup_manager.create_backup(tenant_id=tenant_id, backup_source_id=backup_source_id, schedule_id=schedule_id)
 
     try:
         remote_path = backup_destination_manager.upload_backup(local_path)

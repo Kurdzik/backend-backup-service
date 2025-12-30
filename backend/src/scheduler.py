@@ -40,6 +40,7 @@ def load_schedules_from_db():
                     "backup_source_id": schedule.source_id,
                     "backup_destination_id": schedule.destination_id,
                     "tenant_id": schedule.tenant_id,
+                    "schedule_id": schedule.id,
                     "keep_n": schedule.keep_n
                 },
             }

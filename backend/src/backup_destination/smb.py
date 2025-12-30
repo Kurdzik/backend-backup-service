@@ -125,8 +125,10 @@ class SMBBackupDestination(BaseBackupDestinationManager):
                         path=remote_path,
                         size=stat_info.st_size,
                         modified=datetime.fromtimestamp(stat_info.st_mtime).isoformat(),
-                        source=self._extract_backup_source_id(entry),
-                        source_id=self._extract_backup_source_id(entry)
+                        source=self._parse_filename(entry)["source"],
+                        tenant_id=self._parse_filename(entry)["tenant_id"],
+                        schedule_id=self._parse_filename(entry)["schedule_id"],
+                        source_id=self._parse_filename(entry)["source_id"],
 
                     )
                     backups.append(backup)
