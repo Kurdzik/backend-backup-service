@@ -79,3 +79,13 @@ class Schedule(SQLModel, table=True):
     next_run: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class Logs(SQLModel, table=True):
+    __tablename__ = "logs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: str = Field(index=True)
+    service_name: str = Field(index=True)
+    log: str
+    timestamp: datetime = Field(default_factory=datetime.now)

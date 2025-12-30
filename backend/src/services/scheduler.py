@@ -8,7 +8,7 @@ from kombu import Connection
 import threading
 import os
 from src.backup_schedule_manager import schedules_queue
-from src.worker import app
+from src.services.worker import app
 
 
 def parse_cron_exp(exp: str):

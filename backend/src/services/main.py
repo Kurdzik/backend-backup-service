@@ -26,9 +26,9 @@ from src.models.db import Destination
 from src.models.db import Session as AuthSession
 from src.models.db import Source, User
 from src.utils import UserInfo, get_db_session, get_user_info
-from src.worker import create_backup, delete_backup, list_backups, restore_from_backup
+from src.services.worker import create_backup, delete_backup, list_backups, restore_from_backup
 from fastapi.middleware.cors import CORSMiddleware
-
+import docker
 
 load_dotenv()
 configure_logger()
@@ -184,6 +184,22 @@ def reset_password(
 def get_current_user_info(user_info: UserInfo = Depends(get_user_info)):
     return ApiResponse(
         message="Information retrieved successfully", data=user_info.model_dump()
+    )
+
+
+@app.get("/api/v1/system/logs", response_model=ApiResponse)
+def get_current_user_info(user_info: UserInfo = Depends(get_user_info)):
+    import docker 
+
+    client = docker.APIClient()
+
+    containers = {name["Id"]:{"name":name["Names"][0].replace("/",""), "logs":""} for name in client.containers(all=True)}
+
+    for k in containers.keys():
+        containers[k]["logs"] = client.logs(k).decode(encoding="utf-8")
+
+    return ApiResponse(
+        message="Logs retrieved successfully", data=containers
     )
 
 

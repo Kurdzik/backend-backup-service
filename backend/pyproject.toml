@@ -10,6 +10,7 @@ dependencies = [
     "boto3>=1.41.5",
     "celery>=5.5.3",
     "db-sqlite3>=0.0.1",
+    "docker>=7.1.0",
     "elasticsearch==8",
     "fastapi>=0.123.0",
     "httpx>=0.28.1",
