@@ -10,7 +10,7 @@ class Credentials(BaseModel):
 
 class BackupDetails(BaseModel):
     tenant_id: str
-    schedule_id: Optional[int] = None
+    schedule_id: Optional[int|str] = None
     name: str
     path: str
     source: str

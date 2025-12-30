@@ -34,7 +34,7 @@ def load_schedules_from_db():
         schedules = db_session.exec(select(Schedule)).all()
         for schedule in schedules:
             schedule_dict[f"backup-schedule-{schedule.id}-{schedule.tenant_id}"] = {
-                "task": "src.worker.create_backup",
+                "task": "src.services.worker.create_backup",
                 "schedule": parse_cron_exp(schedule.schedule),
                 "kwargs": {
                     "backup_source_id": schedule.source_id,

@@ -117,7 +117,8 @@ class BaseBackupDestinationManager:
     def _parse_filename(filename: str):
         """Parse backup filename and extract info"""
         filename = os.path.basename(filename)
-        pattern = r'^(\w+)_backup_usr=([a-f0-9\-]+)_sch=(\d+)_src=(\d+)_created_at=(\d+_\d+)\.(.+)$'
+
+        pattern = r'^(\w+)_backup_usr=([a-f0-9\-]+)_sch=(\d+|None)_src=(\d+)_created_at=(\d+_\d+)\.(.+)$'
         
         match = re.match(pattern, filename)
         
