@@ -11,6 +11,7 @@ from src.models import Logs
 
 _tenant_context: ContextVar[Optional[dict]] = ContextVar("tenant_context", default=None)
 
+
 class DatabaseHandler(logging.Handler):
     """Custom logging handler that writes logs to the database."""
 
@@ -36,7 +37,7 @@ class DatabaseHandler(logging.Handler):
             with Session(self.engine) as session:
                 session.add(log_entry)
                 session.commit()
-                
+
         except Exception:
             self.handleError(record)
 

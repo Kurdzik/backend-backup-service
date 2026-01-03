@@ -8,19 +8,16 @@ import sqlmodel
 from datetime import datetime
 from src.models import *
 from src import *
-from src.utils import get_db_session, get_user_info 
+from src.utils import get_db_session, get_user_info
 from src.backup_destination import BackupDestinationManager
 
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api")
 logger = get_logger("api")
 
-router = APIRouter(prefix="/backup-destinations", tags=["Backup Destination Management"])
-
-
-
-
-
+router = APIRouter(
+    prefix="/backup-destinations", tags=["Backup Destination Management"]
+)
 
 
 @router.post("/add", response_model=ApiResponse)

@@ -8,13 +8,15 @@ import sqlmodel
 from datetime import datetime, timedelta
 from src.models import *
 from src.models import Session as AuthSession
-from src.utils import get_db_session, get_user_info 
+from src.utils import get_db_session, get_user_info
 from uuid import uuid4
+
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api")
 logger = get_logger("user-manager")
 
 router = APIRouter(prefix="/users", tags=["User Management"])
+
 
 @router.post("/register", response_model=ApiResponse)
 def register(
@@ -99,7 +101,8 @@ def login(
 
 @router.post("/change-password", response_model=ApiResponse)
 def reset_password(
-    request: ResetPasswordRequest, db_session: sqlmodel.Session = Depends(get_db_session)
+    request: ResetPasswordRequest,
+    db_session: sqlmodel.Session = Depends(get_db_session),
 ):
     if request.new_password != request.new_password2:
         raise HTTPException(

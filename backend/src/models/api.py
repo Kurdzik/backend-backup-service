@@ -8,8 +8,10 @@ class ApiResponse(BaseModel):
     message: str
     data: dict[str, Any] = Field(default_factory=dict)
 
+
 class ErrorResponse(BaseModel):
     detail: str
+
 
 class RegisterUserRequest(BaseModel):
     username: str
@@ -28,6 +30,7 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     new_password2: str
 
+
 class CreateScheduleBackupRequest(BaseModel):
     schedule_name: str
     backup_source_id: int
@@ -40,6 +43,7 @@ class RestoreBackupRequest(BaseModel):
     backup_source_id: int
     backup_destination_id: int
     backup_path: str
+
 
 class AddBackupSourceRequest(BaseModel):
     source_type: Literal["vault", "qdrant", "postgres", "elasticsearch"]

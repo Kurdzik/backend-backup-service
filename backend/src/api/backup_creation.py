@@ -5,14 +5,19 @@ from fastapi.routing import APIRouter
 from fastapi import Depends, HTTPException, Query, status
 from src.models import *
 from src import *
-from src.utils import get_user_info 
-from src.services.worker import create_backup, list_backups, restore_from_backup,delete_backup
+from src.utils import get_user_info
+from src.services.worker import (
+    create_backup,
+    list_backups,
+    restore_from_backup,
+    delete_backup,
+)
 
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api")
 logger = get_logger("api")
 
-router = APIRouter(prefix="/backup", tags = ["Backups Management"])
+router = APIRouter(prefix="/backup", tags=["Backups Management"])
 
 
 @router.put("/create", response_model=ApiResponse)

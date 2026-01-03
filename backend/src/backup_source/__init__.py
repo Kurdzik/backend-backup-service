@@ -1,4 +1,3 @@
-
 from src.backup_source.elasticsearch import ElasticsearchBackupManager
 from src.backup_source.postgres import PostgresBackupManager
 from src.backup_source.qdrant import QdrantBackupManager
