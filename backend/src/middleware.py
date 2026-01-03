@@ -9,8 +9,8 @@ from sqlmodel import Session, select
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from src.models.db import Session as UserSession
-from src.models.db import User
+from src.models import Session as UserSession
+from src.models import User
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 engine = create_engine(DATABASE_URL)

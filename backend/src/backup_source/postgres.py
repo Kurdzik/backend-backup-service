@@ -1,12 +1,10 @@
 import os
-import re
 import subprocess
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlparse
 
 import psycopg2
-from psycopg2 import sql
 
 from src.base import BaseBackupManager, Credentials
 

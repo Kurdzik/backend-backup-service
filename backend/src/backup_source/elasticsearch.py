@@ -5,7 +5,6 @@ import tempfile
 from datetime import datetime
 from typing import Optional
 
-import httpx
 from elasticsearch import Elasticsearch
 
 from src.base import BaseBackupManager, Credentials

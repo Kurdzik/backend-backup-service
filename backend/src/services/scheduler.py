@@ -2,13 +2,12 @@
 from celery.beat import Scheduler
 from celery.schedules import crontab
 from sqlmodel import select, Session
-from src.models.db import Schedule
+from src.models import Schedule
 from src.middleware import engine
 from kombu import Connection
 import threading
 import os
 from src.backup_schedule_manager import schedules_queue
-from src.services.worker import app
 
 
 def parse_cron_exp(exp: str):

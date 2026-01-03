@@ -1,7 +1,7 @@
 from fastapi import Request
 from sqlmodel import Session
 
-from src.models.structs import UserInfo
+from src.models import UserInfo
 
 
 def get_db_session(request: Request) -> Session:

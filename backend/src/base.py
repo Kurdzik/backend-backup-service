@@ -3,8 +3,7 @@ import os
 import uuid
 from typing import Optional
 import re
-from pydantic import BaseModel
-from src.models.structs import Credentials, BackupDetails
+from src.models import Credentials, BackupDetails
 
 
 class BaseBackupManager:

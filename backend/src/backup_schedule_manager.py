@@ -5,7 +5,7 @@ import os
 from sqlmodel import Session, select
 from kombu import Connection, Exchange, Queue
 
-from src.models.db import Schedule as ScheduleModel
+from src.models import Schedule as ScheduleModel
 
 
 schedules_exchange = Exchange("schedules_exchange", "direct", durable=True)

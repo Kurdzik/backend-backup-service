@@ -1,4 +1,3 @@
-from typing import Literal
 
 from src.backup_source.elasticsearch import ElasticsearchBackupManager
 from src.backup_source.postgres import PostgresBackupManager

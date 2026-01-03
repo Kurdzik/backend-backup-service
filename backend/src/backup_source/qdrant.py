@@ -3,9 +3,8 @@ import os
 import tarfile
 import tempfile
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
-import httpx
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 

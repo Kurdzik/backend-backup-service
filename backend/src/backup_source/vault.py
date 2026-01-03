@@ -3,10 +3,8 @@ import os
 import tarfile
 import tempfile
 from datetime import datetime
-from typing import Dict, Optional
-from urllib.parse import urlparse
+from typing import Optional
 
-import httpx
 import hvac
 
 from src.base import BaseBackupManager, Credentials

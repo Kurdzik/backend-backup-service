@@ -1,9 +1,6 @@
 import os
-from datetime import datetime
 
 from celery import Celery
-from fastapi import Request
-from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlmodel import Session, and_, select
 from typing import Optional
@@ -11,9 +8,7 @@ from src import configure_logger, get_logger, tenant_context
 from src.backup_destination import BackupDestinationManager
 from src.backup_source import BackupManager
 from src.base import Credentials
-from src.models.api import RestoreBackupRequest
-from src.models.db import Destination, Source
-from src.models.structs import UserInfo
+from src.models import UserInfo, Destination, Source, RestoreBackupRequest
 
 app = Celery("worker")
 app.conf.update(

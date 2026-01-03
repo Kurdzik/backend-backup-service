@@ -1,18 +1,15 @@
 import logging
 import sys
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime
 from contextvars import ContextVar
 from typing import Optional
 
 import structlog
-from sqlmodel import Session, create_engine
-from src.models.db import Logs
+from sqlmodel import Session
+from src.models import Logs
 
-
-# Context variable to store tenant_id and service_name per request
 _tenant_context: ContextVar[Optional[dict]] = ContextVar("tenant_context", default=None)
-
 
 class DatabaseHandler(logging.Handler):
     """Custom logging handler that writes logs to the database."""
@@ -23,10 +20,9 @@ class DatabaseHandler(logging.Handler):
 
     def emit(self, record):
         try:
-            # Get tenant info from context
             context = _tenant_context.get()
             if not context:
-                return  # Skip logging if no tenant context
+                return
 
             tenant_id = context.get("tenant_id")
             service_name = context.get("service_name", "unknown")
@@ -35,11 +31,12 @@ class DatabaseHandler(logging.Handler):
                 tenant_id=tenant_id,
                 service_name=service_name,
                 log=self.format(record),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(),
             )
             with Session(self.engine) as session:
                 session.add(log_entry)
                 session.commit()
+                
         except Exception:
             self.handleError(record)
 
@@ -57,7 +54,7 @@ def configure_logger(engine, service_name: str = "default"):
 
     structlog.configure(
         processors=[
-            add_context,  # Add tenant context first
+            add_context,
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.add_log_level,
@@ -78,7 +75,6 @@ def configure_logger(engine, service_name: str = "default"):
         level=logging.INFO,
     )
 
-    # Add database handler
     db_handler = DatabaseHandler(engine)
     logging.root.addHandler(db_handler)
 
