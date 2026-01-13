@@ -32,18 +32,18 @@ def add_backup_destination(
         logger.info(
             "add_destination_request_received",
             destination_type=request.destination_type,
-            destination_name=request.destination_name
+            destination_name=request.destination_name,
         )
-        
+
         try:
             encrypted_password = None
             if request.credentials.password:
                 encrypted_password = encrypt_str(request.credentials.password)
-            
+
             encrypted_api_key = None
             if request.credentials.api_key:
                 encrypted_api_key = encrypt_str(request.credentials.api_key)
-            
+
             new_destination = Destination(
                 tenant_id=user_info.tenant_id,
                 name=request.destination_name
@@ -56,24 +56,24 @@ def add_backup_destination(
                 api_key=encrypted_api_key,
                 config=request.config,
             )
-            
+
             db_session.add(new_destination)
             db_session.commit()
             db_session.refresh(new_destination)
 
             logger.info(
-                "backup_destination_created", 
+                "backup_destination_created",
                 destination_id=new_destination.id,
-                destination_type=request.destination_type
+                destination_type=request.destination_type,
             )
             return ApiResponse(message="Backup destination added successfully")
 
         except Exception as e:
             logger.error(
-                "failed_to_add_backup_destination", 
-                error=str(e), 
+                "failed_to_add_backup_destination",
+                error=str(e),
                 destination_type=request.destination_type,
-                exc_info=True
+                exc_info=True,
             )
             raise
 
@@ -85,22 +85,28 @@ def list_backup_destinations(
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
         logger.info("list_destinations_request_received")
-        
+
         try:
-            statement = select(Destination).where(Destination.tenant_id == user_info.tenant_id)
+            statement = select(Destination).where(
+                Destination.tenant_id == user_info.tenant_id
+            )
             all_backup_destinations = db_session.exec(statement).all()
-            
+
             destinations_list = []
             for dest in all_backup_destinations:
-                dest_dict = dest.model_dump() if hasattr(dest, 'model_dump') else dest.__dict__.copy()
-                
-                if 'password' in dest_dict:
-                    dest_dict['password'] = None
-                if 'api_key' in dest_dict:
-                    dest_dict['api_key'] = None
-                
+                dest_dict = (
+                    dest.model_dump()
+                    if hasattr(dest, "model_dump")
+                    else dest.__dict__.copy()
+                )
+
+                if "password" in dest_dict:
+                    dest_dict["password"] = None
+                if "api_key" in dest_dict:
+                    dest_dict["api_key"] = None
+
                 destinations_list.append(dest_dict)
-            
+
             count = len(destinations_list)
             logger.info("list_destinations_success", count=count)
 
@@ -120,7 +126,9 @@ def delete_backup_destination(
     user_info: UserInfo = Depends(get_user_info),
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
-        logger.info("delete_destination_request_received", destination_id=destination_id)
+        logger.info(
+            "delete_destination_request_received", destination_id=destination_id
+        )
 
         try:
             statement = select(Destination).where(
@@ -130,12 +138,16 @@ def delete_backup_destination(
             destination = db_session.exec(statement).first()
 
             if not destination:
-                logger.warning("delete_destination_not_found", destination_id=destination_id)
-                raise HTTPException(status_code=404, detail="Backup destination not found")
+                logger.warning(
+                    "delete_destination_not_found", destination_id=destination_id
+                )
+                raise HTTPException(
+                    status_code=404, detail="Backup destination not found"
+                )
 
             db_session.delete(destination)
             db_session.commit()
-            
+
             logger.info("backup_destination_deleted", destination_id=destination_id)
             return ApiResponse(message="Backup destination deleted successfully")
 
@@ -158,7 +170,9 @@ def update_backup_destination(
     user_info: UserInfo = Depends(get_user_info),
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
-        logger.info("update_destination_request_received", destination_id=request.destination_id)
+        logger.info(
+            "update_destination_request_received", destination_id=request.destination_id
+        )
 
         try:
             statement = select(Destination).where(
@@ -168,8 +182,13 @@ def update_backup_destination(
             destination = db_session.exec(statement).first()
 
             if not destination:
-                logger.warning("update_destination_not_found", destination_id=request.destination_id)
-                raise HTTPException(status_code=404, detail="Backup destination not found")
+                logger.warning(
+                    "update_destination_not_found",
+                    destination_id=request.destination_id,
+                )
+                raise HTTPException(
+                    status_code=404, detail="Backup destination not found"
+                )
 
             if request.destination_name is not None:
                 destination.name = request.destination_name
@@ -192,8 +211,7 @@ def update_backup_destination(
             db_session.refresh(destination)
 
             logger.info(
-                "backup_destination_updated", 
-                destination_id=request.destination_id
+                "backup_destination_updated", destination_id=request.destination_id
             )
             return ApiResponse(message="Backup destination updated successfully")
 
@@ -226,23 +244,36 @@ def test_connection_backup_destination(
             destination = db_session.exec(statement).first()
 
             if not destination:
-                logger.warning("test_connection_destination_not_found", destination_id=destination_id)
-                raise HTTPException(status_code=404, detail="Backup destination not found")
+                logger.warning(
+                    "test_connection_destination_not_found",
+                    destination_id=destination_id,
+                )
+                raise HTTPException(
+                    status_code=404, detail="Backup destination not found"
+                )
 
             decrypted_password = None
             if destination.password:
                 try:
                     decrypted_password = decrypt_str(destination.password)
                 except ValueError as e:
-                    logger.error("password_decryption_failed", destination_id=destination_id, error=str(e))
+                    logger.error(
+                        "password_decryption_failed",
+                        destination_id=destination_id,
+                        error=str(e),
+                    )
                     raise HTTPException(500, detail="Failed to decrypt password")
-            
+
             decrypted_api_key = None
             if destination.api_key:
                 try:
                     decrypted_api_key = decrypt_str(destination.api_key)
                 except ValueError as e:
-                    logger.error("api_key_decryption_failed", destination_id=destination_id, error=str(e))
+                    logger.error(
+                        "api_key_decryption_failed",
+                        destination_id=destination_id,
+                        error=str(e),
+                    )
                     raise HTTPException(500, detail="Failed to decrypt API key")
 
             backup_destination_manager = BackupDestinationManager(
@@ -254,7 +285,11 @@ def test_connection_backup_destination(
                 )
             ).create_from_type(destination.destination_type)
 
-            logger.info("initiating_connection_test", destination_id=destination_id, type=destination.destination_type)
+            logger.info(
+                "initiating_connection_test",
+                destination_id=destination_id,
+                type=destination.destination_type,
+            )
 
             if backup_destination_manager.test_connection():
                 logger.info(

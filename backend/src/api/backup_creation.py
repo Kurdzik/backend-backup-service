@@ -43,11 +43,11 @@ def create_backup_from_source(
                 },
                 ignore_result=True,
             )
-            
+
             logger.info(
                 "create_backup_task_queued",
                 task_id=task.id,
-                backup_source_id=backup_source_id
+                backup_source_id=backup_source_id,
             )
 
             return ApiResponse(message="Backup is being created")
@@ -57,7 +57,7 @@ def create_backup_from_source(
                 "create_backup_failed",
                 error=str(e),
                 backup_source_id=backup_source_id,
-                exc_info=True
+                exc_info=True,
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -72,8 +72,7 @@ def list_backups_from_destination(
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
         logger.info(
-            "list_backups_request_received",
-            backup_destination_id=backup_destination_id
+            "list_backups_request_received", backup_destination_id=backup_destination_id
         )
 
         try:
@@ -84,16 +83,16 @@ def list_backups_from_destination(
                 },
                 ignore_result=False,
             )
-            
+
             logger.info("list_backups_task_queued", task_id=task.id)
 
             backups = task.get()
-            
+
             count = len(backups) if backups else 0
             logger.info(
                 "list_backups_success",
                 count=count,
-                backup_destination_id=backup_destination_id
+                backup_destination_id=backup_destination_id,
             )
 
             return ApiResponse(
@@ -109,7 +108,7 @@ def list_backups_from_destination(
                 "list_backups_failed",
                 error=str(e),
                 backup_destination_id=backup_destination_id,
-                exc_info=True
+                exc_info=True,
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -141,9 +140,7 @@ def delete_backup_from_destination(
             )
 
             logger.info(
-                "delete_backup_task_queued",
-                task_id=task.id,
-                backup_path=backup_path
+                "delete_backup_task_queued", task_id=task.id, backup_path=backup_path
             )
 
             return ApiResponse(message="Backup deleted successfully")
@@ -153,7 +150,7 @@ def delete_backup_from_destination(
                 "delete_backup_failed",
                 error=str(e),
                 backup_path=backup_path,
-                exc_info=True
+                exc_info=True,
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -181,7 +178,7 @@ def restore_backup_to_source(
                 },
                 ignore_result=False,
             )
-            
+
             logger.info("restore_task_queued", task_id=task.id)
 
             result = task.get()
@@ -189,14 +186,14 @@ def restore_backup_to_source(
             if result:
                 logger.info(
                     "restore_process_completed_successfully",
-                    backup_source_id=request.backup_source_id
+                    backup_source_id=request.backup_source_id,
                 )
                 return ApiResponse(message="Backup restored successfully")
             else:
                 logger.error(
                     "restore_process_returned_failure",
                     backup_source_id=request.backup_source_id,
-                    result=result
+                    result=result,
                 )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -210,7 +207,7 @@ def restore_backup_to_source(
                 "restore_backup_exception",
                 error=str(e),
                 backup_source_id=request.backup_source_id,
-                exc_info=True
+                exc_info=True,
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

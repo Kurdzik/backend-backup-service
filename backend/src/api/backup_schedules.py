@@ -59,7 +59,7 @@ def add_backup_schedule(
                 "failed_to_add_backup_schedule",
                 backup_source_id=request.backup_source_id,
                 error=str(e),
-                exc_info=True
+                exc_info=True,
             )
             raise
 
@@ -75,7 +75,7 @@ def delete_backup_schedule(
 
         try:
             schedule_manager = ScheduleManager(db_session)
-            
+
             schedule_manager.delete_schedule(schedule_id, user_info.tenant_id)
 
             logger.info("backup_schedule_deleted_success", schedule_id=schedule_id)
@@ -107,7 +107,9 @@ def update_backup_schedules(
             )
 
             if not old_schedule:
-                logger.warning("update_schedule_not_found", schedule_id=request.schedule_id)
+                logger.warning(
+                    "update_schedule_not_found", schedule_id=request.schedule_id
+                )
                 raise HTTPException(status_code=404, detail="Schedule not found")
 
             schedule_manager.update_schedule(
@@ -121,9 +123,9 @@ def update_backup_schedules(
             )
 
             logger.info(
-                "backup_schedule_updated_success", 
+                "backup_schedule_updated_success",
                 schedule_id=request.schedule_id,
-                is_active=request.is_active
+                is_active=request.is_active,
             )
             return ApiResponse(message="Backup schedule updated successfully")
         except HTTPException:
@@ -145,12 +147,12 @@ def list_backup_schedules(
 ):
     with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
         logger.info("list_schedules_request_received")
-        
+
         try:
             schedule_manager = ScheduleManager(db_session)
 
             schedules = schedule_manager.list_schedules(tenant_id=user_info.tenant_id)
-            
+
             count = len(schedules) if schedules else 0
             logger.info("list_schedules_success", count=count)
 
@@ -159,12 +161,8 @@ def list_backup_schedules(
                 data={"backup_schedules": schedules},
             )
         except Exception as e:
-            logger.error(
-                "list_schedules_failed", 
-                error=str(e), 
-                exc_info=True
-            )
+            logger.error("list_schedules_failed", error=str(e), exc_info=True)
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-                detail="Failed to retrieve schedules"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve schedules",
             )

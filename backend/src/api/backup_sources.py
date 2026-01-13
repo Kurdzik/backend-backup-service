@@ -33,11 +33,10 @@ def add_backup_source(
         )
 
         try:
-
             encrypted_password = None
             if request.credentials.password:
                 encrypted_password = encrypt_str(request.credentials.password)
-            
+
             encrypted_api_key = None
             if request.credentials.api_key:
                 encrypted_api_key = encrypt_str(request.credentials.api_key)
@@ -53,7 +52,7 @@ def add_backup_source(
                 password=encrypted_password,
                 api_key=encrypted_api_key,
             )
-            
+
             db_session.add(source)
             db_session.commit()
 
@@ -91,13 +90,17 @@ def list_backup_sources(
 
             sources_list = []
             for source in all_backup_sources:
-                source_dict = source.model_dump() if hasattr(source, 'model_dump') else source.__dict__.copy()
-                
-                if 'password' in source_dict:
-                    source_dict['password'] = None
-                if 'api_key' in source_dict:
-                    source_dict['api_key'] = None
-                
+                source_dict = (
+                    source.model_dump()
+                    if hasattr(source, "model_dump")
+                    else source.__dict__.copy()
+                )
+
+                if "password" in source_dict:
+                    source_dict["password"] = None
+                if "api_key" in source_dict:
+                    source_dict["api_key"] = None
+
                 sources_list.append(source_dict)
 
             count = len(sources_list)
@@ -273,28 +276,24 @@ def test_connection_backup_source(
                     decrypted_password = decrypt_str(source.password)
                 except ValueError as e:
                     logger.error(
-                        "password_decryption_failed",
-                        source_id=source_id,
-                        error=str(e)
+                        "password_decryption_failed", source_id=source_id, error=str(e)
                     )
                     raise HTTPException(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="Failed to decrypt password"
+                        detail="Failed to decrypt password",
                     )
-            
+
             decrypted_api_key = None
             if source.api_key:
                 try:
                     decrypted_api_key = decrypt_str(source.api_key)
                 except ValueError as e:
                     logger.error(
-                        "api_key_decryption_failed",
-                        source_id=source_id,
-                        error=str(e)
+                        "api_key_decryption_failed", source_id=source_id, error=str(e)
                     )
                     raise HTTPException(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="Failed to decrypt API key"
+                        detail="Failed to decrypt API key",
                     )
 
             backup_manager = BackupManager(

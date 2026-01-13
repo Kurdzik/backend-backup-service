@@ -37,18 +37,16 @@ db_session = Session(engine)
 
 
 def _decrypt_credentials(
-    source_or_destination, 
-    entity_type: str, 
-    entity_id: int
+    source_or_destination, entity_type: str, entity_id: int
 ) -> Credentials:
     """
     Helper function to decrypt credentials from Source or Destination objects.
-    
+
     Args:
         source_or_destination: Source or Destination object with encrypted credentials
         entity_type: String describing the entity type for logging (e.g., "source", "destination")
         entity_id: ID of the entity for logging
-    
+
     Returns:
         Credentials object with decrypted password and api_key
     """
@@ -60,10 +58,10 @@ def _decrypt_credentials(
             logger.error(
                 f"{entity_type}_password_decryption_failed",
                 entity_id=entity_id,
-                error=str(e)
+                error=str(e),
             )
             raise ValueError(f"Failed to decrypt {entity_type} password")
-    
+
     decrypted_api_key = None
     if source_or_destination.api_key:
         try:
@@ -72,10 +70,10 @@ def _decrypt_credentials(
             logger.error(
                 f"{entity_type}_api_key_decryption_failed",
                 entity_id=entity_id,
-                error=str(e)
+                error=str(e),
             )
             raise ValueError(f"Failed to decrypt {entity_type} API key")
-    
+
     return Credentials(
         url=source_or_destination.url,
         login=source_or_destination.login,
@@ -115,21 +113,17 @@ def create_backup(
             backup_source = db_session.exec(statement).one()
 
             source_credentials = _decrypt_credentials(
-                backup_source, 
-                "source", 
-                backup_source_id
+                backup_source, "source", backup_source_id
             )
-            
+
             backup_manager = BackupManager(source_credentials).create_from_type(
                 backup_source.source_type
             )
 
             destination_credentials = _decrypt_credentials(
-                backup_destination,
-                "destination",
-                backup_destination_id
+                backup_destination, "destination", backup_destination_id
             )
-            
+
             backup_destination_manager = BackupDestinationManager(
                 destination_credentials
             ).create_from_type(backup_destination.destination_type)
@@ -199,11 +193,9 @@ def list_backups(backup_destination_id: int, user_info: UserInfo):
             backup_destination = db_session.exec(statement).one()
 
             destination_credentials = _decrypt_credentials(
-                backup_destination,
-                "destination",
-                backup_destination_id
+                backup_destination, "destination", backup_destination_id
             )
-            
+
             backup_destination_manager = BackupDestinationManager(
                 destination_credentials
             ).create_from_type(backup_destination.destination_type)
@@ -213,7 +205,9 @@ def list_backups(backup_destination_id: int, user_info: UserInfo):
             return backups
 
         except ValueError as e:
-            logger.error("list_backups_failed_decryption_error", error=str(e), exc_info=True)
+            logger.error(
+                "list_backups_failed_decryption_error", error=str(e), exc_info=True
+            )
             raise
         except Exception as e:
             logger.error("list_backups_failed", error=str(e), exc_info=True)
@@ -241,11 +235,9 @@ def delete_backup(backup_destination_id: int, backup_path: str, user_info: UserI
             backup_destination = db_session.exec(statement).one()
 
             destination_credentials = _decrypt_credentials(
-                backup_destination,
-                "destination",
-                backup_destination_id
+                backup_destination, "destination", backup_destination_id
             )
-            
+
             backup_destination_manager = BackupDestinationManager(
                 destination_credentials
             ).create_from_type(backup_destination.destination_type)
@@ -254,7 +246,9 @@ def delete_backup(backup_destination_id: int, backup_path: str, user_info: UserI
             logger.info("backup_deleted", backup_path=backup_path)
 
         except ValueError as e:
-            logger.error("delete_backup_failed_decryption_error", error=str(e), exc_info=True)
+            logger.error(
+                "delete_backup_failed_decryption_error", error=str(e), exc_info=True
+            )
             raise
         except Exception as e:
             logger.error("delete_backup_failed", error=str(e), exc_info=True)
@@ -292,21 +286,17 @@ def restore_from_backup(request: RestoreBackupRequest, user_info: UserInfo):
             backup_source = db_session.exec(statement).one()
 
             source_credentials = _decrypt_credentials(
-                backup_source,
-                "source",
-                request.backup_source_id
+                backup_source, "source", request.backup_source_id
             )
-            
+
             backup_manager = BackupManager(source_credentials).create_from_type(
                 backup_source.source_type
             )
 
             destination_credentials = _decrypt_credentials(
-                backup_destination,
-                "destination",
-                request.backup_destination_id
+                backup_destination, "destination", request.backup_destination_id
             )
-            
+
             backup_destination_manager = BackupDestinationManager(
                 destination_credentials
             ).create_from_type(backup_destination.destination_type)
@@ -330,7 +320,9 @@ def restore_from_backup(request: RestoreBackupRequest, user_info: UserInfo):
                     logger.info("local_backup_cleaned", local_path=local_path)
 
         except ValueError as e:
-            logger.error("restore_task_failed_decryption_error", error=str(e), exc_info=True)
+            logger.error(
+                "restore_task_failed_decryption_error", error=str(e), exc_info=True
+            )
             return False
         except Exception as e:
             logger.error("restore_task_failed", error=str(e), exc_info=True)
