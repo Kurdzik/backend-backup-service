@@ -1,12 +1,14 @@
 FROM node:20.18.0-bullseye
 
-RUN apt update && apt-get clean
-WORKDIR /frontend
+RUN apt-get update && apt-get clean && mkdir /app
 
-COPY package.json yarn.lock ./
+
+# COPY package.json yarn.lock ./
+COPY . /app
+WORKDIR /app/frontend
+
 RUN yarn install --frozen-lockfile
 
-COPY . .
 
 ARG NEXT_PUBLIC_BACKEND_URL
 ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}

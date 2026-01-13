@@ -44,10 +44,6 @@ interface NotificationState {
   statusCode: number;
 }
 
-interface RegisterProps {
-  onSwitchToLogin: () => void;
-}
-
 function getPasswordStrength(password: string): number {
   if (!password) return 0;
   let strength = 0;
@@ -59,7 +55,7 @@ function getPasswordStrength(password: string): number {
   return Math.min(strength, 4);
 }
 
-export default function Register({ onSwitchToLogin }: RegisterProps) {
+export default function RegisterPage() {
   const [formData, setFormData] = useState<FormData>({
     username: "",
     password: "",

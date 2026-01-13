@@ -10,8 +10,9 @@ from src.models import *
 from src import *
 from src.utils import get_db_session, get_user_info
 from src.backup_destination import BackupDestinationManager
+from src.crypto import encrypt_str, decrypt_str
 
-# Setup Logger
+
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api.backup_destinations")
 logger = get_logger("api.backup_destinations")
@@ -35,6 +36,14 @@ def add_backup_destination(
         )
         
         try:
+            encrypted_password = None
+            if request.credentials.password:
+                encrypted_password = encrypt_str(request.credentials.password)
+            
+            encrypted_api_key = None
+            if request.credentials.api_key:
+                encrypted_api_key = encrypt_str(request.credentials.api_key)
+            
             new_destination = Destination(
                 tenant_id=user_info.tenant_id,
                 name=request.destination_name
@@ -43,8 +52,8 @@ def add_backup_destination(
                 destination_type=request.destination_type,
                 url=request.credentials.url,
                 login=request.credentials.login,
-                password=request.credentials.password,
-                api_key=request.credentials.api_key,
+                password=encrypted_password,
+                api_key=encrypted_api_key,
                 config=request.config,
             )
             
@@ -81,12 +90,23 @@ def list_backup_destinations(
             statement = select(Destination).where(Destination.tenant_id == user_info.tenant_id)
             all_backup_destinations = db_session.exec(statement).all()
             
-            count = len(all_backup_destinations)
+            destinations_list = []
+            for dest in all_backup_destinations:
+                dest_dict = dest.model_dump() if hasattr(dest, 'model_dump') else dest.__dict__.copy()
+                
+                if 'password' in dest_dict:
+                    dest_dict['password'] = None
+                if 'api_key' in dest_dict:
+                    dest_dict['api_key'] = None
+                
+                destinations_list.append(dest_dict)
+            
+            count = len(destinations_list)
             logger.info("list_destinations_success", count=count)
 
             return ApiResponse(
                 message="Backup destinations retrieved successfully",
-                data={"backup_destinations": list(all_backup_destinations)},
+                data={"backup_destinations": destinations_list},
             )
         except Exception as e:
             logger.error("list_destinations_failed", error=str(e), exc_info=True)
@@ -160,9 +180,9 @@ def update_backup_destination(
                 if request.credentials.login is not None:
                     destination.login = request.credentials.login
                 if request.credentials.password is not None:
-                    destination.password = request.credentials.password
+                    destination.password = encrypt_str(request.credentials.password)
                 if request.credentials.api_key is not None:
-                    destination.api_key = request.credentials.api_key
+                    destination.api_key = encrypt_str(request.credentials.api_key)
 
             if request.config is not None:
                 destination.config = request.config  # type: ignore[invalid-assignment]
@@ -209,12 +229,28 @@ def test_connection_backup_destination(
                 logger.warning("test_connection_destination_not_found", destination_id=destination_id)
                 raise HTTPException(status_code=404, detail="Backup destination not found")
 
+            decrypted_password = None
+            if destination.password:
+                try:
+                    decrypted_password = decrypt_str(destination.password)
+                except ValueError as e:
+                    logger.error("password_decryption_failed", destination_id=destination_id, error=str(e))
+                    raise HTTPException(500, detail="Failed to decrypt password")
+            
+            decrypted_api_key = None
+            if destination.api_key:
+                try:
+                    decrypted_api_key = decrypt_str(destination.api_key)
+                except ValueError as e:
+                    logger.error("api_key_decryption_failed", destination_id=destination_id, error=str(e))
+                    raise HTTPException(500, detail="Failed to decrypt API key")
+
             backup_destination_manager = BackupDestinationManager(
                 credentials=Credentials(
                     url=destination.url,
                     login=destination.login,
-                    password=destination.password,
-                    api_key=destination.api_key,
+                    password=decrypted_password,
+                    api_key=decrypted_api_key,
                 )
             ).create_from_type(destination.destination_type)
 

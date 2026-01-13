@@ -15,11 +15,54 @@ x-common-env: &common-env
   POSTGRES_DB: ${POSTGRES_DB}
 
 services:
+  migrations:
+    container_name: migrations
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.backend
+      args:
+        - PG_VERSION=17
+    user: "1000"
+    environment:
+      <<: *common-env
+    env_file:
+      - .env
+    networks:
+      - app-network
+    depends_on:
+      app_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: ["sh", "-c", "uv run alembic upgrade head"]
+    restart: "no"
+
+  frontend:
+    container_name: frontend
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+    user: "1000"
+    ports:
+      - "3333:3000"
+    environment:
+      <<: *common-env
+    env_file:
+      - .env
+    networks:
+      - app-network
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   backend:
     container_name: backend
     build:
-      context: backend
-      dockerfile: dockerfiles/Dockerfile
+      context: .
+      dockerfile: dockerfiles/Dockerfile.backend
       args:
         - PG_VERSION=17
     user: "1000"
@@ -34,18 +77,16 @@ services:
     volumes:
       - backups_volume:/mnt/backups
     depends_on:
-      app_db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     restart: unless-stopped
-    command: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.services.main:app --host 0.0.0.0 --port 8000 --workers 1"]
+    command: ["sh", "-c", "uv run uvicorn src.services.main:app --host 0.0.0.0 --port 8000 --workers 1"]
 
   worker:
     container_name: worker
     build:
-      context: backend
-      dockerfile: dockerfiles/Dockerfile
+      context: .
+      dockerfile: dockerfiles/Dockerfile.backend
       args:
         - PG_VERSION=17
     user: "1000"
@@ -58,18 +99,16 @@ services:
     volumes:
       - backups_volume:/mnt/backups
     depends_on:
-      app_db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     restart: unless-stopped
     command: ["sh", "-c", "uv run celery -A src.services.worker worker --loglevel=info "] #--without-heartbeat --without-mingle --without-gossip
 
   scheduler:
     container_name: scheduler
     build:
-      context: backend
-      dockerfile: dockerfiles/Dockerfile
+      context: .
+      dockerfile: dockerfiles/Dockerfile.backend
       args:
         - PG_VERSION=17
     environment:
@@ -79,12 +118,10 @@ services:
     networks:
       - app-network
     depends_on:
-      app_db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     restart: unless-stopped
-    command: ["sh", "-c", "uv run celery -A src.services.scheduler beat --loglevel=debug"]
+    command: ["sh", "-c", "uv run celery -A src.services.worker beat --loglevel=info"]
 
   rabbitmq:
     container_name: rabbitmq
@@ -115,7 +152,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "5678:5432"
     networks:
       - app-network
     restart: unless-stopped

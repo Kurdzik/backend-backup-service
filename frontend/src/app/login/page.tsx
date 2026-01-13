@@ -40,11 +40,7 @@ interface NotificationState {
   statusCode: number;
 }
 
-interface LoginProps {
-  onSwitchToRegister: () => void;
-}
-
-export default function Login({ onSwitchToRegister }: LoginProps) {
+export default function LoginPage() {
   const [formData, setFormData] = useState<FormData>({
     username: "",
     password: "",

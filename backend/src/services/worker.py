@@ -9,6 +9,7 @@ from src.backup_destination import BackupDestinationManager
 from src.backup_source import BackupManager
 from src.base import Credentials
 from src.models import UserInfo, Destination, Source, RestoreBackupRequest
+from src.crypto import decrypt_str
 
 app = Celery("worker")
 app.conf.update(
@@ -33,6 +34,54 @@ configure_logger(engine, service_name="worker")
 logger = get_logger("worker")
 
 db_session = Session(engine)
+
+
+def _decrypt_credentials(
+    source_or_destination, 
+    entity_type: str, 
+    entity_id: int
+) -> Credentials:
+    """
+    Helper function to decrypt credentials from Source or Destination objects.
+    
+    Args:
+        source_or_destination: Source or Destination object with encrypted credentials
+        entity_type: String describing the entity type for logging (e.g., "source", "destination")
+        entity_id: ID of the entity for logging
+    
+    Returns:
+        Credentials object with decrypted password and api_key
+    """
+    decrypted_password = None
+    if source_or_destination.password:
+        try:
+            decrypted_password = decrypt_str(source_or_destination.password)
+        except ValueError as e:
+            logger.error(
+                f"{entity_type}_password_decryption_failed",
+                entity_id=entity_id,
+                error=str(e)
+            )
+            raise ValueError(f"Failed to decrypt {entity_type} password")
+    
+    decrypted_api_key = None
+    if source_or_destination.api_key:
+        try:
+            decrypted_api_key = decrypt_str(source_or_destination.api_key)
+        except ValueError as e:
+            logger.error(
+                f"{entity_type}_api_key_decryption_failed",
+                entity_id=entity_id,
+                error=str(e)
+            )
+            raise ValueError(f"Failed to decrypt {entity_type} API key")
+    
+    return Credentials(
+        url=source_or_destination.url,
+        login=source_or_destination.login,
+        password=decrypted_password,
+        api_key=decrypted_api_key,
+    )
 
 
 @app.task
@@ -65,22 +114,24 @@ def create_backup(
             )
             backup_source = db_session.exec(statement).one()
 
-            backup_manager = BackupManager(
-                Credentials(
-                    url=backup_source.url,
-                    login=backup_source.login,
-                    password=backup_source.password,
-                    api_key=backup_source.api_key,
-                )
-            ).create_from_type(backup_source.source_type)
+            source_credentials = _decrypt_credentials(
+                backup_source, 
+                "source", 
+                backup_source_id
+            )
+            
+            backup_manager = BackupManager(source_credentials).create_from_type(
+                backup_source.source_type
+            )
 
+            destination_credentials = _decrypt_credentials(
+                backup_destination,
+                "destination",
+                backup_destination_id
+            )
+            
             backup_destination_manager = BackupDestinationManager(
-                Credentials(
-                    url=backup_destination.url,
-                    login=backup_destination.login,
-                    password=backup_destination.password,
-                    api_key=backup_destination.api_key,
-                )
+                destination_credentials
             ).create_from_type(backup_destination.destination_type)
 
             logger.info("creating_local_backup", source_type=backup_source.source_type)
@@ -96,7 +147,6 @@ def create_backup(
 
                 backups = backup_destination_manager.list_backups()
 
-                # sorted from oldest to newest
                 relevant_backups = sorted(
                     filter(
                         lambda backup: backup.source == backup_source.source_type,
@@ -124,6 +174,9 @@ def create_backup(
                     os.remove(local_path)
                     logger.info("local_backup_cleaned", local_path=local_path)
 
+        except ValueError as e:
+            logger.error("backup_failed_decryption_error", error=str(e), exc_info=True)
+            raise
         except Exception as e:
             logger.error("backup_failed", error=str(e), exc_info=True)
             raise
@@ -145,19 +198,23 @@ def list_backups(backup_destination_id: int, user_info: UserInfo):
             )
             backup_destination = db_session.exec(statement).one()
 
+            destination_credentials = _decrypt_credentials(
+                backup_destination,
+                "destination",
+                backup_destination_id
+            )
+            
             backup_destination_manager = BackupDestinationManager(
-                Credentials(
-                    url=backup_destination.url,
-                    login=backup_destination.login,
-                    password=backup_destination.password,
-                    api_key=backup_destination.api_key,
-                )
+                destination_credentials
             ).create_from_type(backup_destination.destination_type)
 
             backups = backup_destination_manager.list_backups()
             logger.info("backups_listed", count=len(backups))
             return backups
 
+        except ValueError as e:
+            logger.error("list_backups_failed_decryption_error", error=str(e), exc_info=True)
+            raise
         except Exception as e:
             logger.error("list_backups_failed", error=str(e), exc_info=True)
             raise
@@ -183,18 +240,22 @@ def delete_backup(backup_destination_id: int, backup_path: str, user_info: UserI
             )
             backup_destination = db_session.exec(statement).one()
 
+            destination_credentials = _decrypt_credentials(
+                backup_destination,
+                "destination",
+                backup_destination_id
+            )
+            
             backup_destination_manager = BackupDestinationManager(
-                Credentials(
-                    url=backup_destination.url,
-                    login=backup_destination.login,
-                    password=backup_destination.password,
-                    api_key=backup_destination.api_key,
-                )
+                destination_credentials
             ).create_from_type(backup_destination.destination_type)
 
             backup_destination_manager.delete_backup(backup_path)
             logger.info("backup_deleted", backup_path=backup_path)
 
+        except ValueError as e:
+            logger.error("delete_backup_failed_decryption_error", error=str(e), exc_info=True)
+            raise
         except Exception as e:
             logger.error("delete_backup_failed", error=str(e), exc_info=True)
             raise
@@ -230,22 +291,24 @@ def restore_from_backup(request: RestoreBackupRequest, user_info: UserInfo):
             )
             backup_source = db_session.exec(statement).one()
 
-            backup_manager = BackupManager(
-                Credentials(
-                    url=backup_source.url,
-                    login=backup_source.login,
-                    password=backup_source.password,
-                    api_key=backup_source.api_key,
-                )
-            ).create_from_type(backup_source.source_type)
+            source_credentials = _decrypt_credentials(
+                backup_source,
+                "source",
+                request.backup_source_id
+            )
+            
+            backup_manager = BackupManager(source_credentials).create_from_type(
+                backup_source.source_type
+            )
 
+            destination_credentials = _decrypt_credentials(
+                backup_destination,
+                "destination",
+                request.backup_destination_id
+            )
+            
             backup_destination_manager = BackupDestinationManager(
-                Credentials(
-                    url=backup_destination.url,
-                    login=backup_destination.login,
-                    password=backup_destination.password,
-                    api_key=backup_destination.api_key,
-                )
+                destination_credentials
             ).create_from_type(backup_destination.destination_type)
 
             logger.info("downloading_backup", backup_path=request.backup_path)
@@ -266,6 +329,9 @@ def restore_from_backup(request: RestoreBackupRequest, user_info: UserInfo):
                     os.remove(local_path)
                     logger.info("local_backup_cleaned", local_path=local_path)
 
+        except ValueError as e:
+            logger.error("restore_task_failed_decryption_error", error=str(e), exc_info=True)
+            return False
         except Exception as e:
             logger.error("restore_task_failed", error=str(e), exc_info=True)
             return False

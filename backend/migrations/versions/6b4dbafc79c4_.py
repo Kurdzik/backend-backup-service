@@ -36,8 +36,6 @@ def upgrade() -> None:
         op.f("ix_logs_service_name"), "logs", ["service_name"], unique=False
     )
     op.create_index(op.f("ix_logs_tenant_id"), "logs", ["tenant_id"], unique=False)
-    op.drop_table("celery_tasksetmeta")
-    op.drop_table("celery_taskmeta")
     # ### end Alembic commands ###
 
 

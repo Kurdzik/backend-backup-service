@@ -12,6 +12,7 @@ from src.services.worker import (
     restore_from_backup,
     delete_backup,
 )
+from src.crypto import encrypt_str, decrypt_str
 
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api.backup_management")

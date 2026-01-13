@@ -1,4 +1,3 @@
-# scheduler.py
 from celery.beat import Scheduler
 from celery.schedules import crontab
 from sqlmodel import select, Session

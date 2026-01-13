@@ -3,7 +3,6 @@ import type { ApiResponse } from "./types";
 
 const conf = {
   backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || "NO BACKEND URL PROVIDED",
-  apiKey: process.env.NEXT_PUBLIC_API_KEY || "NO API KEY PROVIDED",
   apiVersion: "v1",
 };
 
@@ -15,7 +14,6 @@ const handleUnauthorized = (): void => {
 const createHeaders = (secure: boolean = true): Record<string, string> => {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Api-Key": conf.apiKey,
   };
 
   if (secure) {

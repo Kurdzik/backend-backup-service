@@ -10,6 +10,7 @@ from src.models import *
 from src import *
 from src.utils import get_db_session, get_user_info
 from src.backup_source import BackupManager
+from src.crypto import encrypt_str, decrypt_str
 
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api.backup_sources")
@@ -32,6 +33,15 @@ def add_backup_source(
         )
 
         try:
+
+            encrypted_password = None
+            if request.credentials.password:
+                encrypted_password = encrypt_str(request.credentials.password)
+            
+            encrypted_api_key = None
+            if request.credentials.api_key:
+                encrypted_api_key = encrypt_str(request.credentials.api_key)
+
             source = Source(
                 tenant_id=user_info.tenant_id,
                 name=request.source_name
@@ -40,8 +50,8 @@ def add_backup_source(
                 source_type=request.source_type,
                 url=request.credentials.url,
                 login=request.credentials.login,
-                password=request.credentials.password,
-                api_key=request.credentials.api_key,
+                password=encrypted_password,
+                api_key=encrypted_api_key,
             )
             
             db_session.add(source)
@@ -79,7 +89,18 @@ def list_backup_sources(
             statement = select(Source).where(Source.tenant_id == user_info.tenant_id)
             all_backup_sources = db_session.exec(statement).all()
 
-            count = len(all_backup_sources)
+            sources_list = []
+            for source in all_backup_sources:
+                source_dict = source.model_dump() if hasattr(source, 'model_dump') else source.__dict__.copy()
+                
+                if 'password' in source_dict:
+                    source_dict['password'] = None
+                if 'api_key' in source_dict:
+                    source_dict['api_key'] = None
+                
+                sources_list.append(source_dict)
+
+            count = len(sources_list)
             logger.info(
                 "list_backup_sources_success",
                 count=count,
@@ -88,7 +109,7 @@ def list_backup_sources(
             return ApiResponse(
                 message="Backups sources retrieved successfully",
                 data={
-                    "backup_sources": list(all_backup_sources),
+                    "backup_sources": sources_list,
                     "count": count,
                 },
             )
@@ -192,9 +213,9 @@ def update_backup_source(
                 if request.credentials.login is not None:
                     source.login = request.credentials.login
                 if request.credentials.password is not None:
-                    source.password = request.credentials.password
+                    source.password = encrypt_str(request.credentials.password)
                 if request.credentials.api_key is not None:
-                    source.api_key = request.credentials.api_key
+                    source.api_key = encrypt_str(request.credentials.api_key)
 
             db_session.merge(source)
             db_session.commit()
@@ -246,12 +267,42 @@ def test_connection_backup_source(
             )
 
         try:
+            decrypted_password = None
+            if source.password:
+                try:
+                    decrypted_password = decrypt_str(source.password)
+                except ValueError as e:
+                    logger.error(
+                        "password_decryption_failed",
+                        source_id=source_id,
+                        error=str(e)
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Failed to decrypt password"
+                    )
+            
+            decrypted_api_key = None
+            if source.api_key:
+                try:
+                    decrypted_api_key = decrypt_str(source.api_key)
+                except ValueError as e:
+                    logger.error(
+                        "api_key_decryption_failed",
+                        source_id=source_id,
+                        error=str(e)
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Failed to decrypt API key"
+                    )
+
             backup_manager = BackupManager(
                 credentials=Credentials(
                     url=source.url,
                     login=source.login,
-                    password=source.password,
-                    api_key=source.api_key,
+                    password=decrypted_password,
+                    api_key=decrypted_api_key,
                 )
             ).create_from_type(source.source_type)
 

@@ -10,6 +10,7 @@ from src.models import *
 from src.models import Session as AuthSession
 from src.utils import get_db_session, get_user_info
 from uuid import uuid4
+from src.crypto import hash_password, verify_password
 
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api.user_management")
@@ -37,7 +38,6 @@ def register(
         )
 
     try:
-        # Check if user already exists
         existing_user = db_session.exec(
             select(User).where(User.username == request.username)
         ).first()
@@ -53,11 +53,13 @@ def register(
                 detail="Username already exists",
             )
 
+        hashed_password = hash_password(request.password)
+
         tenant_id = str(uuid4())
         user = User(
             tenant_id=tenant_id,
             username=request.username,
-            password=request.password,
+            password=hashed_password,
             is_active=True,
         )
         db_session.add(user)
@@ -97,19 +99,25 @@ def login(
 
     try:
         user = db_session.exec(
-            select(User).where(
-                and_(
-                    User.username == request.username,
-                    User.password == request.password,
-                )
-            )
+            select(User).where(User.username == request.username)
         ).first()
 
         if not user:
             logger.warning(
                 "login_failed",
                 username=request.username,
-                reason="invalid_credentials",
+                reason="user_not_found",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Wrong username or password",
+            )
+
+        if not verify_password(request.password, user.password):
+            logger.warning(
+                "login_failed",
+                username=request.username,
+                reason="invalid_password",
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -212,7 +220,7 @@ def reset_password(
                 detail="User not found",
             )
 
-        if user.password != request.old_password:
+        if not verify_password(request.old_password, user.password):
             logger.warning(
                 "change_password_failed",
                 username=request.username,
@@ -224,7 +232,7 @@ def reset_password(
                 detail="Old password is incorrect",
             )
 
-        user.password = request.new_password
+        user.password = hash_password(request.new_password)
         db_session.add(user)
         db_session.commit()
 

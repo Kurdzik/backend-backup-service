@@ -9,6 +9,7 @@ from src.models import *
 from src import *
 from src.utils import get_db_session, get_user_info
 from src.backup_schedule_manager import ScheduleManager
+from src.crypto import encrypt_str, decrypt_str
 
 engine = create_engine(os.environ["DATABASE_URL"])
 configure_logger(engine, service_name="api.backup_schedules")
