@@ -76,8 +76,13 @@ def configure_logger(engine, service_name: str = "default"):
         level=logging.INFO,
     )
 
+    logger = logging.getLogger()
+
+    if any(isinstance(h, DatabaseHandler) for h in logger.handlers):
+        return
+
     db_handler = DatabaseHandler(engine)
-    logging.root.addHandler(db_handler)
+    logger.addHandler(db_handler)
 
 
 def get_logger(name: str = __name__):
