@@ -262,7 +262,7 @@ def reset_password(
 
 @router.get("/get-info", response_model=ApiResponse)
 def get_current_user_info(user_info: UserInfo = Depends(get_user_info)):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.user_management"):
         logger.info(
             "get_user_info_request_received",
             tenant_id=user_info.tenant_id,

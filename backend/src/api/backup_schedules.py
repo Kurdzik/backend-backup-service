@@ -24,7 +24,7 @@ def add_backup_schedule(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_schedules"):
         logger.info(
             "add_schedule_request_received",
             backup_source_id=request.backup_source_id,
@@ -70,7 +70,7 @@ def delete_backup_schedule(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_schedules"):
         logger.info("delete_schedule_request_received", schedule_id=schedule_id)
 
         try:
@@ -96,7 +96,7 @@ def update_backup_schedules(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_schedules"):
         logger.info("update_schedule_request_received", schedule_id=request.schedule_id)
 
         try:
@@ -145,7 +145,7 @@ def list_backup_schedules(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_schedules"):
         logger.info("list_schedules_request_received")
 
         try:

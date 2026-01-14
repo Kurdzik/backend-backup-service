@@ -25,7 +25,7 @@ def add_backup_source(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_sources"):
         logger.info(
             "add_backup_source_request_received",
             source_type=request.source_type,
@@ -81,7 +81,7 @@ def list_backup_sources(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_sources"):
         logger.info("list_backup_sources_request_received")
 
         try:
@@ -135,7 +135,7 @@ def delete_backup_source(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_sources"):
         logger.info(
             "delete_backup_source_request_received",
             source_id=source_id,
@@ -185,7 +185,7 @@ def update_backup_source(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_sources"):
         logger.info(
             "update_backup_source_request_received",
             source_id=request.source_id,
@@ -248,7 +248,7 @@ def test_connection_backup_source(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_sources"):
         logger.info(
             "test_connection_request_received",
             source_id=source_id,

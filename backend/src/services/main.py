@@ -22,8 +22,8 @@ from src.api import api_router
 load_dotenv()
 
 engine = create_engine(os.environ["DATABASE_URL"])
-configure_logger(engine, service_name="api")
-logger = get_logger("api")
+configure_logger(engine, service_name="api.system")
+logger = get_logger("api.system")
 
 app = FastAPI(
     title="Backend",
@@ -66,12 +66,10 @@ def get_system_logs(
         return ApiResponse(message="Logs retrieved successfully", data={"logs": logs})
 
     except Exception as e:
-        with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+        with tenant_context(tenant_id=user_info.tenant_id, service_name="api.system"):
             logger.error("failed_to_retrieve_docker_logs", error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve system logs",
         )
 
-
-401, 500, 400, 409, 403, 404

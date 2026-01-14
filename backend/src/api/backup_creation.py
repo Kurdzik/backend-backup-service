@@ -27,7 +27,7 @@ def create_backup_from_source(
     backup_destination_id: int = Query(),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_management"):
         logger.info(
             "create_backup_request_received",
             backup_source_id=backup_source_id,
@@ -70,7 +70,7 @@ def list_backups_from_destination(
     backup_destination_id: int = Query(),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_management"):
         logger.info(
             "list_backups_request_received", backup_destination_id=backup_destination_id
         )
@@ -122,7 +122,7 @@ def delete_backup_from_destination(
     backup_path: str = Query(),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_management"):
         logger.info(
             "delete_backup_request_received",
             backup_destination_id=backup_destination_id,
@@ -163,7 +163,7 @@ def restore_backup_to_source(
     request: RestoreBackupRequest,
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_management"):
         logger.info(
             "restore_backup_request_received",
             backup_source_id=request.backup_source_id,

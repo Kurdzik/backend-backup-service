@@ -28,7 +28,7 @@ def add_backup_destination(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_destinations"):
         logger.info(
             "add_destination_request_received",
             destination_type=request.destination_type,
@@ -83,7 +83,7 @@ def list_backup_destinations(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_destinations"):
         logger.info("list_destinations_request_received")
 
         try:
@@ -125,7 +125,7 @@ def delete_backup_destination(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_destinations"):
         logger.info(
             "delete_destination_request_received", destination_id=destination_id
         )
@@ -169,7 +169,7 @@ def update_backup_destination(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_destinations"):
         logger.info(
             "update_destination_request_received", destination_id=request.destination_id
         )
@@ -233,7 +233,7 @@ def test_connection_backup_destination(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):
-    with tenant_context(tenant_id=user_info.tenant_id, service_name="api"):
+    with tenant_context(tenant_id=user_info.tenant_id, service_name="api.backup_destinations"):
         logger.info("test_connection_request_received", destination_id=destination_id)
 
         try:
