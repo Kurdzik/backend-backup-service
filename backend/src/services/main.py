@@ -7,9 +7,8 @@ from sqlalchemy import create_engine
 from sqlmodel import select
 
 from src import configure_logger, get_logger, tenant_context
+
 from src.middleware import (
-    AuthMiddleware,
-    ResponseTimeLoggingMiddleware,
     SQLAlchemySessionMiddleware,
     session,
 )
@@ -40,20 +39,16 @@ app = FastAPI(
     },
 )
 
-app.add_middleware(AuthMiddleware)  # type:ignore[arg-type]
-app.add_middleware(ResponseTimeLoggingMiddleware)  # type:ignore[arg-type]
-app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)  # type:ignore[arg-type]
+app.add_middleware(SQLAlchemySessionMiddleware, db_session_factory=session)
 app.add_middleware(
-    CORSMiddleware,  # type:ignore[arg-type]
+    CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(api_router)
 
-
-@app.get("/api/v1/system/logs", response_model=ApiResponse)
+@api_router.get("/system/logs", response_model=ApiResponse)
 def get_system_logs(
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
@@ -73,3 +68,5 @@ def get_system_logs(
             detail="Failed to retrieve system logs",
         )
 
+
+app.include_router(api_router)
