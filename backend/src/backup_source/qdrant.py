@@ -67,7 +67,7 @@ class QdrantBackupManager(BaseBackupManager):
                 if hasattr(vectors_config, "model_dump"):
                     vectors_dict = vectors_config.model_dump()  # ty:ignore[call-non-callable]
                 elif hasattr(vectors_config, "dict"):
-                    vectors_dict = vectors_config.dict()  # ty:ignore[call-non-callable]
+                    vectors_dict = vectors_config.model_dump()  # ty:ignore[call-non-callable]
                 else:
                     # Fallback: extract key attributes
                     vectors_dict = {
@@ -121,7 +121,7 @@ class QdrantBackupManager(BaseBackupManager):
 
             # Create tar.gz archive
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"qdrant_backup_usr={tenant_id}_sch={schedule_id}_src={backup_source_id}_created_at={timestamp}tar.gz"
+            backup_path = f"qdrant_backup_usr={tenant_id}_sch={schedule_id}_src={backup_source_id}_created_at={timestamp}.tar.gz"
 
             with tarfile.open(backup_path, "w:gz") as tar:
                 tar.add(temp_dir, arcname="qdrant_backup")

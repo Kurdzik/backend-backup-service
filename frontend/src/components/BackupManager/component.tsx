@@ -1,8 +1,32 @@
 "use client"
 import { post, get, del, put } from "@/lib/backendRequests"
-import { useState, useEffect, useMemo } from "react"
-import { Select, Stack, Modal, Button, Group, Table, Alert, Loader, ActionIcon, Badge, Center, Text, Paper, Tabs } from "@mantine/core"
-import { IconTrash, IconPlus, IconRefresh, IconRestore, IconDatabase, IconServer, IconFolder, IconCloud } from "@tabler/icons-react"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import {
+    Select,
+    Stack,
+    Modal,
+    Button,
+    Group,
+    Table,
+    Alert,
+    Loader,
+    ActionIcon,
+    Badge,
+    Center,
+    Text,
+    Paper,
+    Tabs
+} from "@mantine/core"
+import {
+    IconTrash,
+    IconPlus,
+    IconRefresh,
+    IconRestore,
+    IconDatabase,
+    IconServer,
+    IconFolder,
+    IconCloud
+} from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
@@ -182,59 +206,76 @@ function BackupGraph({ backups, sources }: BackupGraphProps) {
 }
 
 export function BackupFileManager() {
+    // Modal states
     const [createModalOpened, setCreateModalOpened] = useState(false)
     const [restoreModalOpened, setRestoreModalOpened] = useState(false)
     const [deleteModalOpened, setDeleteModalOpened] = useState(false)
+    
+    // Form states
     const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
     const [selectedDestinationId, setSelectedDestinationId] = useState<string | null>(null)
     const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null)
     const [backupToDelete, setBackupToDelete] = useState<Backup | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [notification, setNotification] = useState<NotificationState | null>(null)
-    const [refreshKey, setRefreshKey] = useState(0)
-
+    const [restoreToSourceId, setRestoreToSourceId] = useState<string | null>(null)
+    
+    // Data states
     const [sources, setSources] = useState<BackupSource[]>([])
     const [destinations, setDestinations] = useState<BackupDestination[]>([])
     const [backups, setBackups] = useState<Backup[]>([])
     const [backupCount, setBackupCount] = useState(0)
+    
+    // UI states
+    const [loading, setLoading] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [notification, setNotification] = useState<NotificationState | null>(null)
     const [listDestinationId, setListDestinationId] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<string | null>(null)
 
-    useEffect(() => {
-        const loadMetadata = async () => {
-            setIsLoading(true)
-            setNotification(null)
-            try {
-                const sourcesRes = await get("backup-sources/list")
-                const sourcesList = sourcesRes.status < 400 ? (sourcesRes?.data?.backup_sources || []) : []
+    // Fetch metadata (sources and destinations)
+    const fetchMetadata = useCallback(async () => {
+        setIsLoading(true)
+        setNotification(null)
+        try {
+            // Fetch sources
+            const sourcesRes = await get("backup-sources/list")
+            if (sourcesRes.status >= 400) {
+                setNotification({
+                    message: sourcesRes.detail || "Failed to fetch backup sources",
+                    statusCode: sourcesRes.status
+                })
+                setSources([])
+            } else {
+                const sourcesList = sourcesRes?.data?.backup_sources || []
                 setSources(sourcesList)
+            }
 
-                const destinationsRes = await get("backup-destinations/list")
-                const destinationsList = destinationsRes.status < 400 ? (destinationsRes?.data?.backup_destinations || []) : []
+            // Fetch destinations
+            const destinationsRes = await get("backup-destinations/list")
+            if (destinationsRes.status >= 400) {
+                setNotification({
+                    message: destinationsRes.detail || "Failed to fetch backup destinations",
+                    statusCode: destinationsRes.status
+                })
+                setDestinations([])
+            } else {
+                const destinationsList = destinationsRes?.data?.backup_destinations || []
                 setDestinations(destinationsList)
 
+                // Auto-select first destination if none selected
                 if (destinationsList.length > 0 && !listDestinationId) {
                     setListDestinationId(String(destinationsList[0].id))
                 }
-            } catch (err) {
-                setNotification({ message: "Failed to load sources and destinations", statusCode: 500 })
-                console.error("Error loading metadata:", err)
-            } finally {
-                setIsLoading(false)
             }
+        } catch (err) {
+            setNotification({ message: "Failed to load sources and destinations", statusCode: 500 })
+            console.error("Error loading metadata:", err)
+        } finally {
+            setIsLoading(false)
         }
+    }, [listDestinationId])
 
-        loadMetadata()
-    }, [])
-
-    useEffect(() => {
-        if (listDestinationId) {
-            loadBackups()
-        }
-    }, [listDestinationId, refreshKey])
-
-    const loadBackups = async () => {
+    // Fetch backups for selected destination
+    const fetchBackups = useCallback(async () => {
         if (!listDestinationId) return
 
         setIsLoading(true)
@@ -243,7 +284,10 @@ export function BackupFileManager() {
             const response = await get(`backup/list?backup_destination_id=${listDestinationId}`)
             
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to load backups", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to load backups", 
+                    statusCode: response.status 
+                })
                 setBackups([])
                 setBackupCount(0)
                 return
@@ -266,8 +310,21 @@ export function BackupFileManager() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [listDestinationId, activeTab])
 
+    // Initial load
+    useEffect(() => {
+        fetchMetadata()
+    }, [fetchMetadata])
+
+    // Load backups when destination changes
+    useEffect(() => {
+        if (listDestinationId) {
+            fetchBackups()
+        }
+    }, [listDestinationId, fetchBackups])
+
+    // Memoized dropdown options
     const sourceOptions = useMemo(() => {
         return sources.map(s => ({
             value: String(s.id),
@@ -282,6 +339,7 @@ export function BackupFileManager() {
         }))
     }, [destinations])
 
+    // Group backups by source type
     const backupsBySource = useMemo(() => {
         const grouped: Record<string, Backup[]> = {}
         backups.forEach(backup => {
@@ -297,32 +355,84 @@ export function BackupFileManager() {
         return Object.keys(backupsBySource).sort()
     }, [backupsBySource])
 
-    const getSourceName = (id: number) => sources.find(s => s.id === id)?.name || "Unknown"
-    const getSourceById = (id: string) => sources.find(s => s.id === parseInt(id))
+    // Helper functions
+    const getSourceName = useCallback((id: number) => {
+        return sources.find(s => s.id === id)?.name || "Unknown"
+    }, [sources])
 
+    const getSourceById = useCallback((id: string) => {
+        return sources.find(s => s.id === parseInt(id))
+    }, [sources])
+
+    const getSourcesByType = useCallback((sourceType: string) => {
+        return sources.filter(s => s.source_type === sourceType)
+    }, [sources])
+
+    const formatBytes = useCallback((bytes: number) => {
+        if (bytes === 0) return '0 Bytes'
+        const k = 1024
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    }, [])
+
+    const formatDate = useCallback((dateString: string) => {
+        try {
+            return new Date(dateString).toLocaleString()
+        } catch {
+            return dateString
+        }
+    }, [])
+
+    // Reset create form
+    const resetCreateForm = useCallback(() => {
+        setSelectedSourceId(null)
+        setSelectedDestinationId(null)
+    }, [])
+
+    // Reset restore form
+    const resetRestoreForm = useCallback(() => {
+        setSelectedBackup(null)
+        setRestoreToSourceId(null)
+        setSelectedDestinationId(null)
+    }, [])
+
+    // Handle create backup
     const handleCreateBackup = async () => {
         if (!selectedSourceId || !selectedDestinationId) {
-            setNotification({ message: "Please select both source and destination", statusCode: 400 })
+            setNotification({ 
+                message: "Please select both source and destination", 
+                statusCode: 400 
+            })
             return
         }
 
         setLoading(true)
         setNotification(null)
         try {
-            const response = await put(`backup/create?backup_source_id=${selectedSourceId}&backup_destination_id=${selectedDestinationId}`)
+            const response = await put(
+                `backup/create?backup_source_id=${selectedSourceId}&backup_destination_id=${selectedDestinationId}`
+            )
 
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to create backup", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to create backup", 
+                    statusCode: response.status 
+                })
                 return
             }
 
-            setNotification({ message: response.message || "Backup is being created", statusCode: response.status })
-            setCreateModalOpened(false)
-            setSelectedSourceId(null)
-            setSelectedDestinationId(null)
+            setNotification({ 
+                message: response.message || "Backup is being created", 
+                statusCode: response.status 
+            })
             
+            setCreateModalOpened(false)
+            resetCreateForm()
+            
+            // Refresh backups after a delay
             setTimeout(() => {
-                setRefreshKey(prev => prev + 1)
+                fetchBackups()
             }, 2000)
         } catch (err) {
             setNotification({ message: "Failed to create backup", statusCode: 500 })
@@ -332,9 +442,13 @@ export function BackupFileManager() {
         }
     }
 
+    // Handle restore backup
     const handleRestoreBackup = async () => {
-        if (!selectedSourceId || !selectedDestinationId || !selectedBackup) {
-            setNotification({ message: "Please select source, destination, and backup file", statusCode: 400 })
+        if (!restoreToSourceId || !selectedDestinationId || !selectedBackup) {
+            setNotification({ 
+                message: "Please select target source, destination, and backup file", 
+                statusCode: 400 
+            })
             return
         }
 
@@ -342,23 +456,30 @@ export function BackupFileManager() {
         setNotification(null)
         try {
             const payload = {
-                backup_source_id: parseInt(selectedSourceId),
+                backup_source_id: parseInt(restoreToSourceId),
                 backup_destination_id: parseInt(selectedDestinationId),
                 backup_path: selectedBackup.path
             }
 
+            console.log("Restoring backup with payload:", JSON.stringify(payload, null, 2))
+
             const response = await post("backup/restore", payload)
 
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to restore backup", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to restore backup", 
+                    statusCode: response.status 
+                })
                 return
             }
 
-            setNotification({ message: response.message || "Backup restored successfully", statusCode: response.status })
+            setNotification({ 
+                message: response.message || "Backup restored successfully", 
+                statusCode: response.status 
+            })
+            
             setRestoreModalOpened(false)
-            setSelectedSourceId(null)
-            setSelectedDestinationId(null)
-            setSelectedBackup(null)
+            resetRestoreForm()
         } catch (err) {
             setNotification({ message: "Failed to restore backup", statusCode: 500 })
             console.error(err)
@@ -367,23 +488,40 @@ export function BackupFileManager() {
         }
     }
 
+    // Handle delete backup
     const handleDeleteBackup = async () => {
-        if (!listDestinationId || !backupToDelete) return
+        if (!listDestinationId || !backupToDelete) {
+            setNotification({ 
+                message: "Missing destination or backup information", 
+                statusCode: 400 
+            })
+            return
+        }
 
         setLoading(true)
         setNotification(null)
         try {
-            const response = await del(`backup/delete?backup_destination_id=${listDestinationId}&backup_path=${encodeURIComponent(backupToDelete.path)}`)
+            const response = await del(
+                `backup/delete?backup_destination_id=${listDestinationId}&backup_path=${encodeURIComponent(backupToDelete.path)}`
+            )
 
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to delete backup", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to delete backup", 
+                    statusCode: response.status 
+                })
                 return
             }
 
-            setNotification({ message: response.message || "Backup deleted successfully", statusCode: response.status })
+            setNotification({ 
+                message: response.message || "Backup deleted successfully", 
+                statusCode: response.status 
+            })
+            
             setDeleteModalOpened(false)
             setBackupToDelete(null)
-            setRefreshKey(prev => prev + 1)
+            
+            await fetchBackups()
         } catch (err) {
             setNotification({ message: "Failed to delete backup", statusCode: 500 })
             console.error(err)
@@ -392,21 +530,45 @@ export function BackupFileManager() {
         }
     }
 
-    const formatBytes = (bytes: number) => {
-        if (bytes === 0) return '0 Bytes'
-        const k = 1024
-        const sizes = ['Bytes', 'KB', 'MB', 'GB']
-        const i = Math.floor(Math.log(bytes) / Math.log(k))
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-    }
-
-    const formatDate = (dateString: string) => {
-        try {
-            return new Date(dateString).toLocaleString()
-        } catch {
-            return dateString
+    // Open restore modal with backup pre-selected
+    const openRestoreModal = useCallback((backup: Backup) => {
+        setSelectedBackup(backup)
+        setSelectedDestinationId(listDestinationId)
+        
+        // Find the original source
+        const originalSource = getSourceById(backup.source_id)
+        
+        // Auto-select the original source if found
+        if (originalSource) {
+            setRestoreToSourceId(String(originalSource.id))
+        } else {
+            setRestoreToSourceId(null)
         }
-    }
+        
+        setRestoreModalOpened(true)
+    }, [listDestinationId, getSourceById])
+
+    // Open delete modal
+    const openDeleteModal = useCallback((backup: Backup) => {
+        setBackupToDelete(backup)
+        setDeleteModalOpened(true)
+    }, [])
+
+    // Get compatible sources for restore (same type as backup)
+    const getCompatibleSources = useCallback((backup: Backup | null) => {
+        if (!backup) return sourceOptions
+
+        const originalSource = getSourceById(backup.source_id)
+        if (!originalSource) return sourceOptions
+
+        // Filter sources by the same type
+        const compatibleSources = sources.filter(s => s.source_type === originalSource.source_type)
+        
+        return compatibleSources.map(s => ({
+            value: String(s.id),
+            label: `${s.name} (${s.source_type})${s.id === originalSource.id ? ' - Original' : ''}`
+        }))
+    }, [sources, sourceOptions, getSourceById])
 
     const BackupTable = ({ backups }: { backups: Backup[] }) => (
         <Table striped highlightOnHover>
@@ -430,8 +592,10 @@ export function BackupFileManager() {
                     backups.map((backup, idx) => {
                         const source = getSourceById(backup.source_id)
                         return (
-                            <Table.Tr key={idx}>
-                                <Table.Td style={{ fontFamily: "monospace", fontSize: 13 }}>{backup.name}</Table.Td>
+                            <Table.Tr key={`${backup.path}-${idx}`}>
+                                <Table.Td style={{ fontFamily: "monospace", fontSize: 13 }}>
+                                    {backup.name}
+                                </Table.Td>
                                 <Table.Td>{formatBytes(backup.size)}</Table.Td>
                                 <Table.Td style={{ fontSize: 12 }}>{formatDate(backup.modified)}</Table.Td>
                                 <Table.Td>
@@ -444,13 +608,7 @@ export function BackupFileManager() {
                                         <ActionIcon
                                             color="blue"
                                             variant="subtle"
-                                            onClick={() => {
-                                                setSelectedBackup(backup)
-                                                // Ensure source_id is set as string for Select component
-                                                setSelectedSourceId(String(backup.source_id))
-                                                setSelectedDestinationId(listDestinationId)
-                                                setRestoreModalOpened(true)
-                                            }}
+                                            onClick={() => openRestoreModal(backup)}
                                             title="Restore Backup"
                                         >
                                             <IconRestore size={16} />
@@ -458,10 +616,7 @@ export function BackupFileManager() {
                                         <ActionIcon
                                             color="red"
                                             variant="subtle"
-                                            onClick={() => {
-                                                setBackupToDelete(backup)
-                                                setDeleteModalOpened(true)
-                                            }}
+                                            onClick={() => openDeleteModal(backup)}
                                             title="Delete Backup"
                                         >
                                             <IconTrash size={16} />
@@ -486,13 +641,16 @@ export function BackupFileManager() {
                 <Group>
                     <Button
                         leftSection={<IconPlus size={16} />}
-                        onClick={() => setCreateModalOpened(true)}
+                        onClick={() => {
+                            resetCreateForm()
+                            setCreateModalOpened(true)
+                        }}
                         disabled={isLoading}
                     >
                         Create Backup
                     </Button>
                     <ActionIcon 
-                        onClick={() => setRefreshKey(prev => prev + 1)} 
+                        onClick={fetchBackups} 
                         loading={isLoading} 
                         variant="default"
                         size="lg"
@@ -502,7 +660,12 @@ export function BackupFileManager() {
                 </Group>
             </Group>
 
-            {notification && <DisplayNotification message={notification.message} statusCode={notification.statusCode} />}
+            {notification && (
+                <DisplayNotification 
+                    message={notification.message} 
+                    statusCode={notification.statusCode} 
+                />
+            )}
 
             <Paper p="md" mb="md" withBorder>
                 <Select
@@ -554,10 +717,15 @@ export function BackupFileManager() {
                 </>
             )}
 
+            {/* Create Backup Modal */}
             <Modal
                 opened={createModalOpened}
-                onClose={() => setCreateModalOpened(false)}
+                onClose={() => {
+                    setCreateModalOpened(false)
+                    resetCreateForm()
+                }}
                 title="Create New Backup"
+                size="lg"
             >
                 <Stack>
                     <Select
@@ -592,17 +760,28 @@ export function BackupFileManager() {
                         >
                             Create Backup
                         </Button>
-                        <Button variant="default" onClick={() => setCreateModalOpened(false)}>
+                        <Button 
+                            variant="default" 
+                            onClick={() => {
+                                setCreateModalOpened(false)
+                                resetCreateForm()
+                            }}
+                        >
                             Cancel
                         </Button>
                     </Group>
                 </Stack>
             </Modal>
 
+            {/* Restore Backup Modal */}
             <Modal
                 opened={restoreModalOpened}
-                onClose={() => setRestoreModalOpened(false)}
+                onClose={() => {
+                    setRestoreModalOpened(false)
+                    resetRestoreForm()
+                }}
                 title="Restore Backup"
+                size="lg"
             >
                 <Stack>
                     <Alert color="orange" title="Warning">
@@ -612,21 +791,32 @@ export function BackupFileManager() {
                     {selectedBackup && (
                         <Paper p="sm" withBorder>
                             <Text size="sm" fw={500} mb={4}>Selected Backup:</Text>
-                            <Text size="sm" style={{ fontFamily: "monospace" }}>{selectedBackup.name}</Text>
+                            <Text size="sm" style={{ fontFamily: "monospace" }}>
+                                {selectedBackup.name}
+                            </Text>
                             <Text size="xs" c="dimmed">Size: {formatBytes(selectedBackup.size)}</Text>
-                            <Text size="xs" c="dimmed">Modified: {formatDate(selectedBackup.modified)}</Text>
+                            <Text size="xs" c="dimmed">
+                                Modified: {formatDate(selectedBackup.modified)}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                Original Source: {getSourceById(selectedBackup.source_id)?.name || 'Unknown'}
+                            </Text>
                         </Paper>
                     )}
 
                     <Select
-                        label="Restore To (Source)"
-                        placeholder="Select destination to restore to"
-                        data={sourceOptions}
-                        value={selectedSourceId}
-                        onChange={setSelectedSourceId}
+                        label="Restore To (Target Source)"
+                        placeholder="Select source to restore to"
+                        data={getCompatibleSources(selectedBackup)}
+                        value={restoreToSourceId}
+                        onChange={setRestoreToSourceId}
                         searchable
                         required
-                        description={selectedBackup ? `Original source: ${getSourceById(selectedBackup.source_id)?.name || 'Unknown'}` : undefined}
+                        description={
+                            selectedBackup 
+                                ? `Compatible sources of type: ${getSourceById(selectedBackup.source_id)?.source_type || 'Unknown'}`
+                                : "Select a backup first"
+                        }
                     />
 
                     <Select
@@ -639,25 +829,40 @@ export function BackupFileManager() {
                         required
                     />
 
+                    <Alert color="blue" title="Cross-Source Restore">
+                        You can restore this backup to any source of the same type. For example, restore a 
+                        PostgreSQL DB1 backup to PostgreSQL DB2.
+                    </Alert>
+
                     <Group mt={20}>
                         <Button
                             onClick={handleRestoreBackup}
-                            disabled={!selectedSourceId || !selectedDestinationId || !selectedBackup}
+                            disabled={!restoreToSourceId || !selectedDestinationId || !selectedBackup}
                             loading={loading}
                             color="orange"
                         >
                             Restore Backup
                         </Button>
-                        <Button variant="default" onClick={() => setRestoreModalOpened(false)}>
+                        <Button 
+                            variant="default" 
+                            onClick={() => {
+                                setRestoreModalOpened(false)
+                                resetRestoreForm()
+                            }}
+                        >
                             Cancel
                         </Button>
                     </Group>
                 </Stack>
             </Modal>
 
+            {/* Delete Backup Modal */}
             <Modal
                 opened={deleteModalOpened}
-                onClose={() => setDeleteModalOpened(false)}
+                onClose={() => {
+                    setDeleteModalOpened(false)
+                    setBackupToDelete(null)
+                }}
                 title="Delete Backup"
             >
                 <Stack>
@@ -668,10 +873,16 @@ export function BackupFileManager() {
                     {backupToDelete && (
                         <Paper p="sm" withBorder>
                             <Text size="sm" fw={500} mb={4}>Backup to Delete:</Text>
-                            <Text size="sm" style={{ fontFamily: "monospace" }}>{backupToDelete.name}</Text>
+                            <Text size="sm" style={{ fontFamily: "monospace" }}>
+                                {backupToDelete.name}
+                            </Text>
                             <Text size="xs" c="dimmed">Size: {formatBytes(backupToDelete.size)}</Text>
-                            <Text size="xs" c="dimmed">Modified: {formatDate(backupToDelete.modified)}</Text>
-                            <Text size="xs" c="dimmed">Source: {getSourceById(backupToDelete.source_id)?.name || 'Unknown'}</Text>
+                            <Text size="xs" c="dimmed">
+                                Modified: {formatDate(backupToDelete.modified)}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                Source: {getSourceById(backupToDelete.source_id)?.name || 'Unknown'}
+                            </Text>
                         </Paper>
                     )}
 
@@ -684,7 +895,13 @@ export function BackupFileManager() {
                         >
                             Delete Backup
                         </Button>
-                        <Button variant="default" onClick={() => setDeleteModalOpened(false)}>
+                        <Button 
+                            variant="default" 
+                            onClick={() => {
+                                setDeleteModalOpened(false)
+                                setBackupToDelete(null)
+                            }}
+                        >
                             Cancel
                         </Button>
                     </Group>

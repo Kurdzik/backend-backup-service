@@ -1,7 +1,21 @@
 "use client"
 import { post, get, del } from "@/lib/backendRequests"
-import { useState, useEffect, useMemo } from "react"
-import { Select, Stack, Modal, TextInput, NumberInput, Button, Group, Table, Alert, Loader, ActionIcon, Badge, Checkbox, Center } from "@mantine/core"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import {
+    Select,
+    Stack,
+    Modal,
+    TextInput,
+    NumberInput,
+    Button,
+    Group,
+    Table,
+    Loader,
+    ActionIcon,
+    Badge,
+    Checkbox,
+    Center
+} from "@mantine/core"
 import { IconEdit, IconTrash, IconPlus, IconRefresh } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
@@ -38,6 +52,15 @@ interface NotificationState {
     statusCode: number
 }
 
+const CRON_PRESETS = [
+    { value: "*/5 * * * *", label: "Every 5 minutes" },
+    { value: "0 * * * *", label: "Every hour" },
+    { value: "0 0 * * *", label: "Daily at midnight" },
+    { value: "0 0 * * 0", label: "Weekly (Sundays at midnight)" },
+    { value: "0 0 1 * *", label: "Monthly (1st at midnight)" },
+    { value: "custom", label: "Custom Cron Expression" }
+]
+
 export function BackupScheduleManager() {
     const [modalOpened, setModalOpened] = useState(false)
     const [scheduleName, setScheduleName] = useState<string>("")
@@ -51,43 +74,68 @@ export function BackupScheduleManager() {
     const [loading, setLoading] = useState(false)
     const [notification, setNotification] = useState<NotificationState | null>(null)
     const [editingId, setEditingId] = useState<number | null>(null)
-    const [refreshKey, setRefreshKey] = useState(0)
 
     const [sources, setSources] = useState<BackupSource[]>([])
     const [destinations, setDestinations] = useState<BackupDestination[]>([])
     const [schedules, setSchedules] = useState<BackupSchedule[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true)
-            setNotification(null)
-            try {
-                // Fetch sources
-                const sourcesRes = await get("backup-sources/list")
-                const sourcesList = sourcesRes.status < 400 ? (sourcesRes?.data?.backup_sources || []) : []
+    // Fetch all data
+    const fetchData = useCallback(async () => {
+        setIsLoading(true)
+        setNotification(null)
+        try {
+            // Fetch sources
+            const sourcesRes = await get("backup-sources/list")
+            if (sourcesRes.status >= 400) {
+                setNotification({
+                    message: sourcesRes.detail || "Failed to fetch backup sources",
+                    statusCode: sourcesRes.status
+                })
+                setSources([])
+            } else {
+                const sourcesList = sourcesRes?.data?.backup_sources || []
                 setSources(sourcesList)
-
-                // Fetch destinations
-                const destinationsRes = await get("backup-destinations/list")
-                const destinationsList = destinationsRes.status < 400 ? (destinationsRes?.data?.backup_destinations || []) : []
-                setDestinations(destinationsList)
-
-                // Fetch schedules
-                const schedulesRes = await get("backup-schedules/list")
-                const schedulesList = schedulesRes.status < 400 ? (schedulesRes?.data?.backup_schedules || []) : []
-                setSchedules(schedulesList)
-            } catch (err) {
-                setNotification({ message: "Failed to load data", statusCode: 500 })
-                console.error("Error loading data:", err)
-            } finally {
-                setIsLoading(false)
             }
+
+            // Fetch destinations
+            const destinationsRes = await get("backup-destinations/list")
+            if (destinationsRes.status >= 400) {
+                setNotification({
+                    message: destinationsRes.detail || "Failed to fetch backup destinations",
+                    statusCode: destinationsRes.status
+                })
+                setDestinations([])
+            } else {
+                const destinationsList = destinationsRes?.data?.backup_destinations || []
+                setDestinations(destinationsList)
+            }
+
+            // Fetch schedules
+            const schedulesRes = await get("backup-schedules/list")
+            if (schedulesRes.status >= 400) {
+                setNotification({
+                    message: schedulesRes.detail || "Failed to fetch backup schedules",
+                    statusCode: schedulesRes.status
+                })
+                setSchedules([])
+            } else {
+                const schedulesList = schedulesRes?.data?.backup_schedules || []
+                setSchedules(schedulesList)
+            }
+        } catch (err) {
+            setNotification({ message: "Failed to load data", statusCode: 500 })
+            console.error("Error loading data:", err)
+        } finally {
+            setIsLoading(false)
         }
+    }, [])
 
-        loadData()
-    }, [refreshKey])
+    useEffect(() => {
+        fetchData()
+    }, [fetchData])
 
+    // Memoize dropdown options
     const sourceOptions = useMemo(() => {
         return sources.map(s => ({
             value: String(s.id),
@@ -102,10 +150,16 @@ export function BackupScheduleManager() {
         }))
     }, [destinations])
 
-    const getSourceName = (id: number) => sources.find(s => s.id === id)?.name || "Unknown"
-    const getDestinationName = (id: number) => destinations.find(d => d.id === id)?.name || "Unknown"
+    // Helper functions
+    const getSourceName = useCallback((id: number) => {
+        return sources.find(s => s.id === id)?.name || "Unknown"
+    }, [sources])
 
-    const resetForm = () => {
+    const getDestinationName = useCallback((id: number) => {
+        return destinations.find(d => d.id === id)?.name || "Unknown"
+    }, [destinations])
+
+    const resetForm = useCallback(() => {
         setScheduleName("")
         setSourceId(null)
         setDestinationId(null)
@@ -114,11 +168,24 @@ export function BackupScheduleManager() {
         setIsCustomCron(false)
         setKeepN(3)
         setIsActive(true)
-    }
+    }, [])
 
     const handleAddSchedule = async () => {
+        // Validate required fields
         if (!sourceId || !destinationId) {
-            setNotification({ message: "Please fill in all required fields", statusCode: 400 })
+            setNotification({ 
+                message: "Please select both source and destination", 
+                statusCode: 400 
+            })
+            return
+        }
+
+        const finalCronExpression = isCustomCron ? customCron : cronExpression
+        if (!finalCronExpression) {
+            setNotification({ 
+                message: "Please provide a valid cron expression", 
+                statusCode: 400 
+            })
             return
         }
 
@@ -126,24 +193,36 @@ export function BackupScheduleManager() {
         setNotification(null)
         try {
             const payload = {
-                schedule_name: scheduleName,
+                schedule_name: scheduleName || undefined,
                 backup_source_id: parseInt(sourceId),
                 backup_destination_id: parseInt(destinationId),
-                backup_schedule: isCustomCron ? customCron : cronExpression,
+                backup_schedule: finalCronExpression,
                 keep_n: keepN
             }
+
+            console.log("Adding schedule with payload:", JSON.stringify(payload, null, 2))
 
             const response = await post("backup-schedules/add", payload)
 
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to add backup schedule", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to add backup schedule", 
+                    statusCode: response.status 
+                })
                 return
             }
 
-            setNotification({ message: response.message || "Backup schedule added successfully", statusCode: response.status })
+            setNotification({ 
+                message: response.message || "Backup schedule added successfully", 
+                statusCode: response.status 
+            })
+            
+            // Reset and close
             setModalOpened(false)
+            setEditingId(null)
             resetForm()
-            setRefreshKey(prev => prev + 1)
+            
+            await fetchData()
         } catch (err) {
             setNotification({ message: "Failed to add backup schedule", statusCode: 500 })
             console.error(err)
@@ -153,8 +232,21 @@ export function BackupScheduleManager() {
     }
 
     const handleUpdateSchedule = async (scheduleId: number) => {
+        // Validate required fields
         if (!sourceId || !destinationId) {
-            setNotification({ message: "Please fill in all required fields", statusCode: 400 })
+            setNotification({ 
+                message: "Please select both source and destination", 
+                statusCode: 400 
+            })
+            return
+        }
+
+        const finalCronExpression = isCustomCron ? customCron : cronExpression
+        if (!finalCronExpression) {
+            setNotification({ 
+                message: "Please provide a valid cron expression", 
+                statusCode: 400 
+            })
             return
         }
 
@@ -163,26 +255,37 @@ export function BackupScheduleManager() {
         try {
             const payload = {
                 schedule_id: scheduleId,
-                schedule_name: scheduleName,
+                schedule_name: scheduleName || undefined,
                 backup_source_id: parseInt(sourceId),
                 backup_destination_id: parseInt(destinationId),
-                backup_schedule: isCustomCron ? customCron : cronExpression,
+                backup_schedule: finalCronExpression,
                 keep_n: keepN,
                 is_active: isActive
             }
 
+            console.log("Updating schedule with payload:", JSON.stringify(payload, null, 2))
+
             const response = await post("backup-schedules/update", payload)
 
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to update backup schedule", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to update backup schedule", 
+                    statusCode: response.status 
+                })
                 return
             }
 
-            setNotification({ message: response.message || "Backup schedule updated successfully", statusCode: response.status })
+            setNotification({ 
+                message: response.message || "Backup schedule updated successfully", 
+                statusCode: response.status 
+            })
+            
+            // Reset and close
             setModalOpened(false)
             setEditingId(null)
             resetForm()
-            setRefreshKey(prev => prev + 1)
+            
+            await fetchData()
         } catch (err) {
             setNotification({ message: "Failed to update backup schedule", statusCode: 500 })
             console.error(err)
@@ -199,33 +302,55 @@ export function BackupScheduleManager() {
             const response = await del(`backup-schedules/delete?schedule_id=${scheduleId}`)
 
             if (response.status >= 400) {
-                setNotification({ message: response.detail || "Failed to delete backup schedule", statusCode: response.status })
+                setNotification({ 
+                    message: response.detail || "Failed to delete backup schedule", 
+                    statusCode: response.status 
+                })
                 return
             }
 
-            setNotification({ message: response.message || "Backup schedule deleted successfully", statusCode: response.status })
-            setRefreshKey(prev => prev + 1)
+            setNotification({ 
+                message: response.message || "Backup schedule deleted successfully", 
+                statusCode: response.status 
+            })
+            
+            await fetchData()
         } catch (err) {
             setNotification({ message: "Failed to delete backup schedule", statusCode: 500 })
             console.error(err)
         }
     }
 
-    const openEditModal = (schedule: BackupSchedule) => {
+    const openAddModal = useCallback(() => {
+        setEditingId(null)
+        resetForm()
+        setModalOpened(true)
+    }, [resetForm])
+
+    const openEditModal = useCallback((schedule: BackupSchedule) => {
         setEditingId(schedule.id)
         setScheduleName(schedule.name)
         setSourceId(schedule.source_id.toString())
         setDestinationId(schedule.destination_id.toString())
-        const commonCrons = ["*/5 * * * *", "0 * * * *", "0 0 * * *", "0 0 * * 0", "0 0 1 * *"]
-        setIsCustomCron(!commonCrons.includes(schedule.schedule))
-        setCronExpression(schedule.schedule)
-        setCustomCron(schedule.schedule)
+        
+        // Determine if schedule is custom or preset
+        const isPreset = CRON_PRESETS.some(preset => preset.value === schedule.schedule)
+        setIsCustomCron(!isPreset)
+        
+        if (isPreset) {
+            setCronExpression(schedule.schedule)
+            setCustomCron("")
+        } else {
+            setCronExpression("")
+            setCustomCron(schedule.schedule)
+        }
+        
         setKeepN(schedule.keep_n)
         setIsActive(schedule.is_active)
         setModalOpened(true)
-    }
+    }, [])
 
-    const isFormValid = sourceId && destinationId
+    const isFormValid = sourceId && destinationId && (isCustomCron ? customCron : cronExpression)
 
     const ScheduleTable = ({ schedules }: { schedules: BackupSchedule[] }) => (
         <Table striped>
@@ -251,10 +376,16 @@ export function BackupScheduleManager() {
                 ) : (
                     schedules.map((schedule) => (
                         <Table.Tr key={schedule.id}>
-                            <Table.Td>{schedule.name}</Table.Td>
-                            <Table.Td style={{ fontSize: 12 }}>{getSourceName(schedule.source_id)}</Table.Td>
-                            <Table.Td style={{ fontSize: 12 }}>{getDestinationName(schedule.destination_id)}</Table.Td>
-                            <Table.Td style={{ fontSize: 12, fontFamily: "monospace" }}>{schedule.schedule}</Table.Td>
+                            <Table.Td>{schedule.name || "Unnamed"}</Table.Td>
+                            <Table.Td style={{ fontSize: 12 }}>
+                                {getSourceName(schedule.source_id)}
+                            </Table.Td>
+                            <Table.Td style={{ fontSize: 12 }}>
+                                {getDestinationName(schedule.destination_id)}
+                            </Table.Td>
+                            <Table.Td style={{ fontSize: 12, fontFamily: "monospace" }}>
+                                {schedule.schedule}
+                            </Table.Td>
                             <Table.Td>{schedule.keep_n} backups</Table.Td>
                             <Table.Td>
                                 <Badge color={schedule.is_active ? "green" : "gray"}>
@@ -262,7 +393,9 @@ export function BackupScheduleManager() {
                                 </Badge>
                             </Table.Td>
                             <Table.Td style={{ fontSize: 12 }}>
-                                {schedule.last_run ? new Date(schedule.last_run).toLocaleString() : "Never"}
+                                {schedule.last_run 
+                                    ? new Date(schedule.last_run).toLocaleString() 
+                                    : "Never"}
                             </Table.Td>
                             <Table.Td>
                                 <Group gap={8}>
@@ -297,21 +430,26 @@ export function BackupScheduleManager() {
                 <h1>Backup Schedules</h1>
                 <Button
                     leftSection={<IconPlus size={16} />}
-                    onClick={() => {
-                        setEditingId(null)
-                        resetForm()
-                        setModalOpened(true)
-                    }}
+                    onClick={openAddModal}
                     disabled={isLoading}
                 >
                     Add Schedule
                 </Button>
-                <ActionIcon onClick={() => setRefreshKey(prev => prev + 1)} loading={isLoading} variant="default">
+                <ActionIcon 
+                    onClick={fetchData} 
+                    loading={isLoading} 
+                    variant="default"
+                >
                     <IconRefresh size={16} />
                 </ActionIcon>
             </Group>
 
-            {notification && <DisplayNotification message={notification.message} statusCode={notification.statusCode} />}
+            {notification && (
+                <DisplayNotification 
+                    message={notification.message} 
+                    statusCode={notification.statusCode} 
+                />
+            )}
 
             {isLoading ? (
                 <Center py={40}>
@@ -323,12 +461,16 @@ export function BackupScheduleManager() {
 
             <Modal
                 opened={modalOpened}
-                onClose={() => setModalOpened(false)}
+                onClose={() => {
+                    setModalOpened(false)
+                    setEditingId(null)
+                }}
                 title={editingId ? "Edit Backup Schedule" : "Add Backup Schedule"}
+                size="lg"
             >
                 <Stack>
                     <TextInput
-                        label="Schedule Name"
+                        label="Schedule Name (Optional)"
                         value={scheduleName}
                         onChange={(e) => setScheduleName(e.currentTarget.value)}
                         placeholder="e.g., Daily Production Backup"
@@ -355,16 +497,9 @@ export function BackupScheduleManager() {
                     />
 
                     <Select
-                        label="Cron Expression"
+                        label="Schedule"
                         placeholder="Select a schedule"
-                        data={[
-                            { value: "*/5 * * * *", label: "Every 5 minutes" },
-                            { value: "0 * * * *", label: "Every hour" },
-                            { value: "0 0 * * *", label: "Daily at midnight" },
-                            { value: "0 0 * * 0", label: "Weekly (Sundays at midnight)" },
-                            { value: "0 0 1 * *", label: "Monthly (1st at midnight)" },
-                            { value: "custom", label: "Custom Cron Expression" }
-                        ]}
+                        data={CRON_PRESETS}
                         value={isCustomCron ? "custom" : cronExpression}
                         onChange={(value) => {
                             if (value === "custom") {
@@ -382,10 +517,7 @@ export function BackupScheduleManager() {
                         <TextInput
                             label="Custom Cron Expression"
                             value={customCron}
-                            onChange={(e) => {
-                                setCustomCron(e.currentTarget.value)
-                                setCronExpression(e.currentTarget.value)
-                            }}
+                            onChange={(e) => setCustomCron(e.currentTarget.value)}
                             placeholder="*/5 * * * *"
                             description="Use standard cron syntax (e.g., */5 * * * * for every 5 minutes)"
                             required
@@ -401,12 +533,14 @@ export function BackupScheduleManager() {
                         required
                     />
 
-                    <Checkbox
-                        label="Active"
-                        checked={isActive}
-                        onChange={(e) => setIsActive(e.currentTarget.checked)}
-                        description="Enable or disable this backup schedule"
-                    />
+                    {editingId && (
+                        <Checkbox
+                            label="Active"
+                            checked={isActive}
+                            onChange={(e) => setIsActive(e.currentTarget.checked)}
+                            description="Enable or disable this backup schedule"
+                        />
+                    )}
 
                     <Group mt={20}>
                         <Button
@@ -416,7 +550,13 @@ export function BackupScheduleManager() {
                         >
                             {editingId ? "Update" : "Add"} Schedule
                         </Button>
-                        <Button variant="default" onClick={() => setModalOpened(false)}>
+                        <Button 
+                            variant="default" 
+                            onClick={() => {
+                                setModalOpened(false)
+                                setEditingId(null)
+                            }}
+                        >
                             Cancel
                         </Button>
                     </Group>
