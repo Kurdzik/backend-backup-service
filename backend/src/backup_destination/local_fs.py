@@ -13,18 +13,9 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
         self._ensure_backup_dir_exists()
 
     def _ensure_backup_dir_exists(self) -> None:
-        """Ensure backup directory exists, create if necessary"""
         Path(self.backup_dir).mkdir(parents=True, exist_ok=True)
 
     def upload_backup(self, local_backup_path: str) -> str:
-        """Upload backup to local filesystem
-
-        Args:
-            local_backup_path: Path to the local backup file to upload
-
-        Returns:
-            str: Remote path of the uploaded backup
-        """
         if not os.path.exists(local_backup_path):
             raise FileNotFoundError(f"Backup file not found: {local_backup_path}")
 
@@ -45,11 +36,6 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
         return destination_path
 
     def list_backups(self) -> list[BackupDetails]:
-        """List all backups stored in the local filesystem
-
-        Returns:
-            list[BackupDetails]: List of backup details
-        """
         backups = []
 
         if not os.path.exists(self.backup_dir):
@@ -85,11 +71,6 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
         return backups
 
     def delete_backup(self, backup_path: str) -> None:
-        """Delete specified backup from local filesystem
-
-        Args:
-            backup_path: Path to the backup to delete
-        """
         if not os.path.exists(backup_path):
             raise FileNotFoundError(f"Backup file not found: {backup_path}")
 
@@ -99,16 +80,6 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
         os.remove(backup_path)
 
     def get_backup(self, backup_path: str, local_path: Optional[str] = None) -> str:
-        """Download/retrieve specified backup from local filesystem
-
-        Args:
-            backup_path: Path to the backup to retrieve
-            local_path: Optional local path where backup should be saved.
-                       If not provided, a copy is made to a temporary location.
-
-        Returns:
-            str: Path to the retrieved backup file
-        """
         if not os.path.exists(backup_path):
             raise FileNotFoundError(f"Backup file not found: {backup_path}")
 
@@ -126,11 +97,6 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
         return local_path
 
     def _delete_extra_backups(self, keep_n: int = 5) -> None:
-        """Delete extra backups from local filesystem, keeping only the most recent N
-
-        Args:
-            keep_n: Number of backups to keep (default: 5)
-        """
         backups = self.list_backups()
 
         # If we have more backups than keep_n, delete the oldest ones
@@ -144,11 +110,6 @@ class LocalFSBackupDestination(BaseBackupDestinationManager):
                     print(f"Failed to delete backup {backup.path}: {str(e)}")
 
     def test_connection(self) -> bool:
-        """Test whether the local filesystem backup directory is accessible
-
-        Returns:
-            bool: True if directory is accessible and writable, False otherwise
-        """
         try:
             # Check if directory exists and is accessible
             if not os.path.exists(self.backup_dir):

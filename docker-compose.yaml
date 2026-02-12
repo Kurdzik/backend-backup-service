@@ -16,7 +16,7 @@ x-common-env: &common-env
 
 services:
   migrations:
-    container_name: migrations
+    container_name: backup-manager-migrations
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.backend
@@ -38,7 +38,7 @@ services:
     restart: "no"
 
   frontend:
-    container_name: frontend
+    container_name: backup-manager-frontend
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.frontend
@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
 
   backend:
-    container_name: backend
+    container_name: backup-manager-backend
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.backend
@@ -85,7 +85,7 @@ services:
     command: ["sh", "-c", "uv run uvicorn src.services.main:app --host 0.0.0.0 --port 8000 --workers 1 --no-access-log"]
 
   worker:
-    container_name: worker
+    container_name: backup-manager-worker
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.backend
@@ -109,7 +109,7 @@ services:
     command: ["sh", "-c", "uv run celery -A src.services.worker worker --loglevel=info "] #--without-heartbeat --without-mingle --without-gossip
 
   scheduler:
-    container_name: scheduler
+    container_name: backup-manager-scheduler
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.backend
@@ -130,7 +130,7 @@ services:
     command: ["sh", "-c", "uv run celery -A src.services.worker beat --loglevel=info"]
 
   rabbitmq:
-    container_name: rabbitmq
+    container_name: backup-manager-rabbitmq
     image: "rabbitmq:3.13-management-alpine"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
@@ -149,7 +149,7 @@ services:
       start_period: 30s
 
   app_db:
-    container_name: app_db
+    container_name: backup-manager-app-db
     image: "postgres:17"
     env_file:
       - .env
