@@ -1,6 +1,7 @@
 from src.backup_destination.local_fs import LocalFSBackupDestination
 from src.backup_destination.s3 import S3BackupDestination
 from src.backup_destination.sftp import SFTPBackupDestination
+from src.backup_destination.smb import SMBBackupDestination
 from src.base import BaseBackupDestinationManager, Credentials
 
 
@@ -13,6 +14,7 @@ class BackupDestinationManager:
             "s3": S3BackupDestination,
             "local_fs": LocalFSBackupDestination,
             "sftp": SFTPBackupDestination,
+            "smb": SMBBackupDestination
         }
 
         return map_[source_type](self.credentials)

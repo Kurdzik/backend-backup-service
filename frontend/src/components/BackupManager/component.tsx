@@ -829,11 +829,6 @@ export function BackupFileManager() {
                         required
                     />
 
-                    <Alert color="blue" title="Cross-Source Restore">
-                        You can restore this backup to any source of the same type. For example, restore a 
-                        PostgreSQL DB1 backup to PostgreSQL DB2.
-                    </Alert>
-
                     <Group mt={20}>
                         <Button
                             onClick={handleRestoreBackup}

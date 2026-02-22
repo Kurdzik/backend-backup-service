@@ -58,7 +58,7 @@ class UpdateBackupSourceRequest(BaseModel):
 
 
 class AddBackupDestinationRequest(BaseModel):
-    destination_type: Literal["s3", "local_fs", "sftp"]
+    destination_type: Literal["s3", "local_fs", "sftp", "smb"]
     destination_name: Optional[str] = None
     credentials: Credentials
     config: Optional[dict[str, str]] = None

@@ -54,59 +54,51 @@ interface NotificationState {
     statusCode: number
 }
 
-
-
 interface CredentialComponentProps {
     onCredentialsChange: (credentials: Credentials) => void
     initialValues: BackupDestination | null
 }
 
 
-
 function DestinationS3Credentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
     const [endpointUrl, setEndpointUrl] = useState<string>("")
     const [bucketName, setBucketName] = useState<string>("")
-    const [regionName, setRegionName] = useState<string>("")
+    const [prefix, setPrefix] = useState<string>("")
     const [login, setLogin] = useState<string>("")
     const [password, setPassword] = useState<string>("")
 
-    // Initialize from existing destination
     useEffect(() => {
         if (!initialValues) {
             setEndpointUrl("")
             setBucketName("")
-            setRegionName("")
+            setPrefix("")
             setLogin("")
             setPassword("")
             return
         }
 
         const url = initialValues.url
-        const match = url.match(/s3:\/\/([^/?]+)/)
-        if (match) setBucketName(match[1])
-        
-        const endpointMatch = url.match(/endpoint_url=([^&]+)/)
-        if (endpointMatch) setEndpointUrl(decodeURIComponent(endpointMatch[1]))
-        
-        const regionMatch = url.match(/region_name=([^&]+)/)
-        if (regionMatch) setRegionName(decodeURIComponent(regionMatch[1]))
+        const match = url.match(/s3:\/\/([^/]+)\/?(.*)/)
+        if (match) {
+            setBucketName(match[1])
+            setPrefix(match[2] || "")
+        }
         
         setLogin(initialValues.login || "")
-        setPassword(initialValues.password || "")
+        setPassword("")
+        setEndpointUrl("") 
     }, [initialValues])
 
-    // Update parent whenever fields change
     useEffect(() => {
+        const path = prefix ? `/${prefix}` : ""
         const credentials: Credentials = {
-            url: bucketName && endpointUrl && regionName
-                ? `s3://${bucketName}/?endpoint_url=${endpointUrl}&region_name=${regionName}`
-                : "",
+            url: bucketName ? `s3://${bucketName}${path}` : "",
             login: login || null,
             password: password || null,
-            api_key: null
+            api_key: endpointUrl || null 
         }
         onCredentialsChange(credentials)
-    }, [bucketName, endpointUrl, regionName, login, password, onCredentialsChange])
+    }, [bucketName, prefix, endpointUrl, login, password, onCredentialsChange])
 
     return (
         <Stack>
@@ -114,40 +106,42 @@ function DestinationS3Credentials({ onCredentialsChange, initialValues }: Creden
                 label="Endpoint URL" 
                 value={endpointUrl} 
                 onChange={(e) => setEndpointUrl(e.currentTarget.value)} 
-                placeholder="https://api.s3..."
-                required
+                placeholder="https://s3.eu-central-1.amazonaws.com"
+                description="Optional: Custom endpoint for MinIO, R2, etc. Leave blank for default AWS S3."
+                required={!initialValues}
             />
             <TextInput 
                 label="Bucket Name" 
                 value={bucketName} 
                 onChange={(e) => setBucketName(e.currentTarget.value)} 
-                placeholder="backups"
+                placeholder="my-production-backups"
                 required
             />
             <TextInput 
-                label="Region" 
-                value={regionName} 
-                onChange={(e) => setRegionName(e.currentTarget.value)} 
-                placeholder="us-east"
-                required
+                label="Folder Prefix (Optional)" 
+                value={prefix} 
+                onChange={(e) => setPrefix(e.currentTarget.value)} 
+                placeholder="postgres/daily"
+                description="Store backups in a specific subfolder."
             />
             <TextInput 
-                label="Access Key" 
+                label="Access Key ID" 
                 value={login} 
                 onChange={(e) => setLogin(e.currentTarget.value)}
+                placeholder="AKIAIOSFODNN7EXAMPLE"
                 required
             />
             <TextInput 
-                label="Secret Key" 
+                label="Secret Access Key" 
                 type="password" 
                 value={password} 
                 onChange={(e) => setPassword(e.currentTarget.value)}
-                required
+                placeholder={initialValues ? "Leave blank to keep existing" : "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}
+                required={!initialValues}
             />
         </Stack>
     )
 }
-
 
 
 function DestinationSmbCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
@@ -181,16 +175,18 @@ function DestinationSmbCredentials({ onCredentialsChange, initialValues }: Crede
     return (
         <Stack>
             <TextInput 
-                label="SMB Path" 
+                label="SMB Share Path" 
                 value={url} 
                 onChange={(e) => setUrl(e.currentTarget.value)} 
-                placeholder="//server/share"
+                placeholder="//192.168.1.100/backups/db"
+                description="Format: //server/share/path or smb://server/share/path"
                 required
             />
             <TextInput 
                 label="Username" 
                 value={login} 
                 onChange={(e) => setLogin(e.currentTarget.value)}
+                placeholder="e.g., admin or DOMAIN\user"
                 required
             />
             <TextInput 
@@ -198,7 +194,8 @@ function DestinationSmbCredentials({ onCredentialsChange, initialValues }: Crede
                 type="password" 
                 value={password} 
                 onChange={(e) => setPassword(e.currentTarget.value)}
-                required
+                placeholder={initialValues ? "Leave blank to keep existing" : ""}
+                required={!initialValues}
             />
         </Stack>
     )
@@ -239,16 +236,18 @@ function DestinationSftpCredentials({ onCredentialsChange, initialValues }: Cred
     return (
         <Stack>
             <TextInput 
-                label="SFTP URL" 
+                label="SFTP Server Path" 
                 value={path} 
                 onChange={(e) => setPath(e.currentTarget.value)} 
-                placeholder="server/path"
+                placeholder="server.com:2222/var/backups"
+                description="Format: host[:port]/path. Port defaults to 22 if omitted."
                 required
             />
             <TextInput 
                 label="Username" 
                 value={login} 
                 onChange={(e) => setLogin(e.currentTarget.value)}
+                placeholder="e.g., root, ubuntu"
                 required
             />
             <TextInput 
@@ -256,7 +255,8 @@ function DestinationSftpCredentials({ onCredentialsChange, initialValues }: Cred
                 type="password" 
                 value={password} 
                 onChange={(e) => setPassword(e.currentTarget.value)}
-                required
+                placeholder={initialValues ? "Leave blank to keep existing" : ""}
+                required={!initialValues}
             />
         </Stack>
     )
@@ -273,7 +273,6 @@ function DestinationFsStoreCredentials({ onCredentialsChange, initialValues }: C
         }
 
         const url = initialValues.url
-        // Extract the relative path after /mnt/backups
         if (url.startsWith(LOCAL_FS_ROOT)) {
             const relative = url.substring(LOCAL_FS_ROOT.length)
             setRelativePath(relative.startsWith("/") ? relative.substring(1) : relative)
@@ -295,7 +294,8 @@ function DestinationFsStoreCredentials({ onCredentialsChange, initialValues }: C
         <Stack>
             <TextInput
                 label="Relative Path"
-                placeholder="relative/path"
+                placeholder="e.g., postgres/production"
+                description={`Will be saved relative to ${LOCAL_FS_ROOT}`}
                 value={relativePath}
                 onChange={(e) => setRelativePath(e.currentTarget.value)}
             />
@@ -325,6 +325,19 @@ export function BackupDestinationsManager() {
     const [editingId, setEditingId] = useState<number | null>(null)
     const [editingDestination, setEditingDestination] = useState<BackupDestination | null>(null)
 
+    // Safely parse FastAPI 422 Validation Errors
+    const parseErrorDetail = (detail: any, fallbackMessage: string) => {
+        if (!detail) return fallbackMessage;
+        if (typeof detail === "string") return detail;
+        if (Array.isArray(detail)) {
+            return detail.map((err: any) => {
+                const field = err.loc && err.loc.length > 0 ? err.loc[err.loc.length - 1] : 'Field';
+                return `${field}: ${err.msg}`;
+            }).join(" | ");
+        }
+        return JSON.stringify(detail);
+    };
+
     // Fetch backup destinations
     const fetchDestinations = async () => {
         setLoadingDestinations(true)
@@ -334,7 +347,7 @@ export function BackupDestinationsManager() {
             
             if (response.status >= 400) {
                 setNotification({ 
-                    message: response.detail || "Failed to fetch backup destinations", 
+                    message: parseErrorDetail(response.detail, "Failed to fetch backup destinations"), 
                     statusCode: response.status 
                 })
                 return
@@ -356,7 +369,6 @@ export function BackupDestinationsManager() {
         fetchDestinations()
     }, [])
 
-    // Memoize credentials handler to prevent unnecessary re-renders
     const handleCredentialsChange = useCallback((newCredentials: Credentials) => {
         console.log("Credentials updated:", newCredentials)
         setCredentials(newCredentials)
@@ -386,7 +398,6 @@ export function BackupDestinationsManager() {
     }
 
     const handleAddDestination = async () => {
-        // Validate credentials
         if (!credentials.url) {
             setNotification({ message: "Please fill in all required credentials", statusCode: 400 })
             return
@@ -412,7 +423,7 @@ export function BackupDestinationsManager() {
             
             if (response.status >= 400) {
                 setNotification({ 
-                    message: response.detail || "Failed to add backup destination", 
+                    message: parseErrorDetail(response.detail, "Failed to add backup destination"), 
                     statusCode: response.status 
                 })
                 return
@@ -423,7 +434,6 @@ export function BackupDestinationsManager() {
                 statusCode: response.status 
             })
             
-            // Reset form
             setModalOpened(false)
             setDestinationName("")
             setCredentials({
@@ -471,7 +481,7 @@ export function BackupDestinationsManager() {
             
             if (response.status >= 400) {
                 setNotification({ 
-                    message: response.detail || "Failed to update backup destination", 
+                    message: parseErrorDetail(response.detail, "Failed to update backup destination"), 
                     statusCode: response.status 
                 })
                 return
@@ -482,7 +492,6 @@ export function BackupDestinationsManager() {
                 statusCode: response.status 
             })
             
-            // Reset form
             setModalOpened(false)
             setEditingId(null)
             setEditingDestination(null)
@@ -512,7 +521,7 @@ export function BackupDestinationsManager() {
             
             if (response.status >= 400) {
                 setNotification({ 
-                    message: response.detail || "Failed to delete backup destination", 
+                    message: parseErrorDetail(response.detail, "Failed to delete backup destination"), 
                     statusCode: response.status 
                 })
                 return
@@ -536,7 +545,7 @@ export function BackupDestinationsManager() {
             
             if (response.status >= 400) {
                 setNotification({ 
-                    message: response.detail || "Connection test failed", 
+                    message: parseErrorDetail(response.detail, "Connection test failed"), 
                     statusCode: response.status 
                 })
                 return
@@ -571,7 +580,6 @@ export function BackupDestinationsManager() {
         setEditingDestination(destination)
         setDestinationName(destination.name)
         setDestinationType(destination.destination_type)
-        // Credentials will be populated by the credential component's useEffect
         setCredentials({
             url: "",
             login: null,

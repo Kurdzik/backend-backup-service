@@ -1,8 +1,10 @@
 import os
 import uuid
+from datetime import datetime
 from typing import Optional
 
 import boto3
+import botocore.exceptions
 from botocore.config import Config
 
 from src.base import BackupDetails, BaseBackupDestinationManager, Credentials
@@ -53,20 +55,30 @@ class S3BackupDestination(BaseBackupDestinationManager):
 
     def upload_backup(self, local_backup_path: str) -> str:
         if not os.path.exists(local_backup_path):
-            raise FileNotFoundError(local_backup_path)
+            raise FileNotFoundError(f"Backup file not found: {local_backup_path}")
 
         filename = os.path.basename(local_backup_path)
+        key = self._key(filename)
 
-        # Always make key unique (filesystem semantics emulation)
-        unique_name = f"{uuid.uuid4().hex}_{filename}"
-        key = self._key(unique_name)
+        file_exists = False
+        try:
+            self.s3_client.head_object(Bucket=self.bucket_name, Key=key)
+            file_exists = True
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] != '404':
+                raise RuntimeError(f"Failed to check S3 for existing file: {e}") from e
+
+        if file_exists:
+            name, ext = os.path.splitext(filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{name}_{timestamp}{ext}"
+            key = self._key(filename)
 
         try:
             self.s3_client.upload_file(
                 local_backup_path,
                 self.bucket_name,
-                key,
-                ExtraArgs={"ACL": "private"},
+                key
             )
             return key
         except Exception as e:
@@ -78,7 +90,7 @@ class S3BackupDestination(BaseBackupDestinationManager):
         paginator = self.s3_client.get_paginator("list_objects_v2")
         pages = paginator.paginate(
             Bucket=self.bucket_name,
-            Prefix=f"{self.prefix}/" if self.prefix else None,
+            Prefix=f"{self.prefix}/" if self.prefix else "",
         )
 
         for page in pages:
@@ -89,20 +101,20 @@ class S3BackupDestination(BaseBackupDestinationManager):
                 name = os.path.basename(obj["Key"])
                 meta = self._parse_filename(name)
 
-                backups.append(
-                    BackupDetails(
-                        name=name,
-                        path=obj["Key"],
-                        size=obj["Size"],
-                        modified=obj["LastModified"].isoformat(),
-                        source=meta["source"],
-                        tenant_id=meta["tenant_id"],
-                        schedule_id=meta["schedule_id"],
-                        source_id=meta["source_id"],
-                    )
+                backup = BackupDetails(
+                    name=name,
+                    path=obj["Key"],
+                    size=obj["Size"],
+                    modified=obj["LastModified"].isoformat(),
+                    source=meta["source"],
+                    tenant_id=meta["tenant_id"],
+                    schedule_id=meta["schedule_id"],
+                    source_id=meta["source_id"],
                 )
+                backups.append(backup)
 
-        backups.sort(key=lambda b: b.modified, reverse=True)
+        backups.sort(key=lambda x: x.modified, reverse=True)
+
         return backups
 
     def delete_backup(self, backup_path: str) -> None:
@@ -116,9 +128,7 @@ class S3BackupDestination(BaseBackupDestinationManager):
 
     def get_backup(self, backup_path: str, local_path: Optional[str] = None) -> str:
         if not local_path:
-            local_path = os.path.join(
-                "/tmp", f"s3_restore_{uuid.uuid4().hex}"
-            )
+            local_path = str(uuid.uuid4()).replace("-", "")
 
         try:
             self.s3_client.download_file(
@@ -127,12 +137,25 @@ class S3BackupDestination(BaseBackupDestinationManager):
                 local_path,
             )
             return local_path
-        except Exception as e:
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                raise FileNotFoundError(f"Backup file not found in S3: {backup_path}")
             raise RuntimeError(f"S3 download failed: {e}") from e
+
+    def _delete_extra_backups(self, keep_n: int = 5) -> None:
+        backups = self.list_backups()
+
+        if len(backups) > keep_n:
+            for backup in backups[keep_n:]:
+                try:
+                    self.delete_backup(backup.path)
+                except Exception as e:
+                    print(f"Failed to delete backup {backup.path}: {str(e)}")
 
     def test_connection(self) -> bool:
         try:
             self.s3_client.head_bucket(Bucket=self.bucket_name)
             return True
-        except Exception:
+        except Exception as e:
+            print(f"S3 Connection test failed: {str(e)}")
             return False

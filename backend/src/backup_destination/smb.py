@@ -1,5 +1,5 @@
 import os
-import uuid
+import stat
 import tempfile
 from datetime import datetime
 from typing import Optional
@@ -7,7 +7,7 @@ from typing import Optional
 import smbclient
 import smbclient.shutil
 
-from src.base import Credentials, BaseBackupDestinationManager, BackupDetails
+from src.base import BackupDetails, BaseBackupDestinationManager, Credentials
 
 
 class SMBBackupDestination(BaseBackupDestinationManager):
@@ -17,22 +17,25 @@ class SMBBackupDestination(BaseBackupDestinationManager):
         self._initialize_smb_session()
 
     def _parse_smb_url(self, url: str) -> tuple[str, str, str]:
-        if not url.startswith("smb://"):
-            raise ValueError("URL must start with smb://")
+        normalized_url = url.replace("\\", "/")
+        
+        if normalized_url.startswith("smb://"):
+            path = normalized_url[6:]
+        elif normalized_url.startswith("//"):
+            path = normalized_url[2:]
+        else:
+            path = normalized_url
 
-        path = url[6:]
-        parts = path.split("/", 2)
+        parts = [p for p in path.split("/") if p]
+        
+        if len(parts) < 2:
+            raise ValueError("SMB URL must contain at least a host and a share (e.g., //server/share)")
 
-        host_port = parts[0]
-        share = parts[1] if len(parts) > 1 else None
-        remote_dir = "/" + parts[2] if len(parts) > 2 else "/"
+        host = parts[0].split(":", 1)[0]  # Remove port if accidentally provided
+        share = parts[1]
+        remote_dir = "/" + "/".join(parts[2:]) if len(parts) > 2 else "/"
 
-        host = host_port.split(":", 1)[0]
-
-        if not host or not share:
-            raise ValueError("SMB URL must be smb://host/share/path")
-
-        return host, share, remote_dir.rstrip("/")
+        return host, share, remote_dir
 
     def _initialize_smb_session(self) -> None:
         try:
@@ -40,15 +43,16 @@ class SMBBackupDestination(BaseBackupDestinationManager):
                 self.host,
                 username=self.credentials.login,
                 password=self.credentials.password,
-                auth_protocol="ntlm",
             )
             self._ensure_remote_dir(self.remote_dir)
         except Exception as e:
-            raise RuntimeError(f"Failed to connect to SMB server: {e}") from e
+            raise RuntimeError(f"Failed to connect to SMB server {self.host}: {e}") from e
 
     def _ensure_remote_dir(self, remote_dir: str) -> None:
-        """Recursively create SMB directories"""
-        parts = remote_dir.strip("/").split("/")
+        if remote_dir == "/":
+            return
+            
+        parts = [p for p in remote_dir.split("/") if p]
         current = ""
         for part in parts:
             current += f"/{part}"
@@ -58,28 +62,42 @@ class SMBBackupDestination(BaseBackupDestinationManager):
             except Exception:
                 try:
                     smbclient.mkdir(smb_path)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"Failed to create remote directory {smb_path}: {e}")
 
     def _get_smb_path(self, remote_path: str) -> str:
         normalized = remote_path.replace("/", "\\")
+        if not normalized.startswith("\\"):
+            normalized = "\\" + normalized
         return f"\\\\{self.host}\\{self.share}{normalized}"
 
     def upload_backup(self, local_backup_path: str) -> str:
         if not os.path.exists(local_backup_path):
-            raise FileNotFoundError(local_backup_path)
+            raise FileNotFoundError(f"Backup file not found: {local_backup_path}")
 
         filename = os.path.basename(local_backup_path)
-        unique_name = f"{uuid.uuid4().hex}_{filename}"
-
-        final_remote = f"{self.remote_dir}/{unique_name}"
-        temp_remote = f"{final_remote}.tmp"
-
-        temp_smb = self._get_smb_path(temp_remote)
+        final_remote = f"{self.remote_dir.rstrip('/')}/{filename}"
         final_smb = self._get_smb_path(final_remote)
 
+        file_exists = False
         try:
-            smbclient.shutil.copy(local_backup_path, temp_smb)
+            smbclient.stat(final_smb)
+            file_exists = True
+        except Exception:
+            pass
+
+        if file_exists:
+            name, ext = os.path.splitext(filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{name}_{timestamp}{ext}"
+            final_remote = f"{self.remote_dir.rstrip('/')}/{filename}"
+            final_smb = self._get_smb_path(final_remote)
+
+        temp_remote = f"{final_remote}.tmp"
+        temp_smb = self._get_smb_path(temp_remote)
+
+        try:
+            smbclient.shutil.copyfile(local_backup_path, temp_smb)
             smbclient.rename(temp_smb, final_smb)
             return final_remote
         except Exception as e:
@@ -100,11 +118,11 @@ class SMBBackupDestination(BaseBackupDestinationManager):
                     continue
 
                 smb_file = f"{smb_dir}\\{entry}"
-                remote_path = f"{self.remote_dir}/{entry}"
+                remote_path = f"{self.remote_dir.rstrip('/')}/{entry}"
 
                 try:
-                    stat = smbclient.stat(smb_file)
-                    if stat.is_dir():
+                    file_stat = smbclient.stat(smb_file)
+                    if stat.S_ISDIR(file_stat.st_mode):
                         continue
 
                     meta = self._parse_filename(entry)
@@ -113,8 +131,8 @@ class SMBBackupDestination(BaseBackupDestinationManager):
                         BackupDetails(
                             name=entry,
                             path=remote_path,
-                            size=stat.st_size,
-                            modified=datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                            size=file_stat.st_size,
+                            modified=datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
                             source=meta["source"],
                             tenant_id=meta["tenant_id"],
                             schedule_id=meta["schedule_id"],
@@ -142,14 +160,25 @@ class SMBBackupDestination(BaseBackupDestinationManager):
             os.close(fd)
 
         try:
-            smbclient.shutil.copy(self._get_smb_path(backup_path), local_path)
+            smbclient.shutil.copyfile(self._get_smb_path(backup_path), local_path)
             return local_path
         except Exception as e:
             raise RuntimeError(f"SMB download failed: {e}") from e
+
+    def _delete_extra_backups(self, keep_n: int = 5) -> None:
+        backups = self.list_backups()
+
+        if len(backups) > keep_n:
+            for backup in backups[keep_n:]:
+                try:
+                    self.delete_backup(backup.path)
+                except Exception as e:
+                    print(f"Failed to delete backup {backup.path}: {str(e)}")
 
     def test_connection(self) -> bool:
         try:
             smbclient.listdir(self._get_smb_path(self.remote_dir))
             return True
-        except Exception:
+        except Exception as e:
+            print(f"SMB Connection test failed: {str(e)}")
             return False

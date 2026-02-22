@@ -1,5 +1,5 @@
 import os
-import uuid
+import stat
 import tempfile
 from datetime import datetime
 from typing import Optional
@@ -12,25 +12,27 @@ from src.base import BackupDetails, BaseBackupDestinationManager, Credentials
 class SFTPBackupDestination(BaseBackupDestinationManager):
     def __init__(self, credentials: Credentials) -> None:
         super().__init__(credentials)
-        self.host, self.remote_dir = self._parse_sftp_url(credentials.url)
-        self.port = getattr(self, "port", 22)
+        self.host, self.port, self.remote_dir = self._parse_sftp_url(credentials.url)
 
         self._ssh_client: Optional[paramiko.SSHClient] = None
         self.sftp_client = self._initialize_sftp_client()
 
-    def _parse_sftp_url(self, url: str) -> tuple[str, str]:
-        if not url.startswith("sftp://"):
-            raise ValueError("URL must start with sftp://")
+    def _parse_sftp_url(self, url: str) -> tuple[str, int, str]:
+        if url.startswith("sftp://"):
+            url = url[7:]
+            
+        parts = [p for p in url.split("/") if p]
+        if not parts:
+            raise ValueError("Host is required in SFTP URL")
 
-        path = url[7:]
-        parts = path.split("/", 1)
         host_port = parts[0]
-        remote_dir = "/" + parts[1] if len(parts) > 1 else "/"
+        remote_dir = "/" + "/".join(parts[1:]) if len(parts) > 1 else "/"
 
+        port = 22
         if ":" in host_port:
             host, port_str = host_port.rsplit(":", 1)
             try:
-                self.port = int(port_str)
+                port = int(port_str)
             except ValueError:
                 raise ValueError("Invalid port in SFTP URL")
         else:
@@ -39,7 +41,7 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
         if not host:
             raise ValueError("Host is required in SFTP URL")
 
-        return host, remote_dir.rstrip("/")
+        return host, port, remote_dir
 
     def _initialize_sftp_client(self) -> paramiko.SFTPClient:
         try:
@@ -64,33 +66,48 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
             raise RuntimeError(f"Failed to connect to SFTP server: {e}") from e
 
     def _ensure_remote_dir(self, sftp: paramiko.SFTPClient, path: str) -> None:
-        """Recursively create remote directories if needed"""
-        parts = path.strip("/").split("/")
+        if path == "/":
+            return
+            
+        parts = [p for p in path.split("/") if p]
         current = ""
         for part in parts:
             current += "/" + part
             try:
                 sftp.stat(current)
             except IOError:
-                sftp.mkdir(current)
+                try:
+                    sftp.mkdir(current)
+                except Exception as e:
+                    print(f"Failed to create remote directory {current}: {e}")
 
     def upload_backup(self, local_backup_path: str) -> str:
         if not os.path.exists(local_backup_path):
-            raise FileNotFoundError(local_backup_path)
+            raise FileNotFoundError(f"Backup file not found: {local_backup_path}")
 
         filename = os.path.basename(local_backup_path)
-        unique_name = f"{uuid.uuid4().hex}_{filename}"
+        final_remote = f"{self.remote_dir}/{filename}"
 
-        final_remote = f"{self.remote_dir}/{unique_name}"
+        file_exists = False
+        try:
+            self.sftp_client.stat(final_remote)
+            file_exists = True
+        except IOError:
+            pass
+
+        if file_exists:
+            name, ext = os.path.splitext(filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{name}_{timestamp}{ext}"
+            final_remote = f"{self.remote_dir}/{filename}"
+
         temp_remote = f"{final_remote}.tmp"
 
         try:
-            # Atomic upload: upload to temp file first
             self.sftp_client.put(local_backup_path, temp_remote)
             self.sftp_client.rename(temp_remote, final_remote)
             return final_remote
         except Exception as e:
-            # Best-effort cleanup
             try:
                 self.sftp_client.remove(temp_remote)
             except Exception:
@@ -102,6 +119,9 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
 
         try:
             for attr in self.sftp_client.listdir_attr(self.remote_dir):
+                if stat.S_ISDIR(attr.st_mode):
+                    continue
+
                 if not attr.filename or attr.filename.endswith(".tmp"):
                     continue
 
@@ -144,11 +164,22 @@ class SFTPBackupDestination(BaseBackupDestinationManager):
         except Exception as e:
             raise RuntimeError(f"SFTP download failed: {e}") from e
 
+    def _delete_extra_backups(self, keep_n: int = 5) -> None:
+        backups = self.list_backups()
+
+        if len(backups) > keep_n:
+            for backup in backups[keep_n:]:
+                try:
+                    self.delete_backup(backup.path)
+                except Exception as e:
+                    print(f"Failed to delete backup {backup.path}: {str(e)}")
+
     def test_connection(self) -> bool:
         try:
             self.sftp_client.stat(self.remote_dir)
             return True
-        except Exception:
+        except Exception as e:
+            print(f"SFTP Connection test failed: {str(e)}")
             return False
 
     def close(self) -> None:
