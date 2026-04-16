@@ -1,0 +1,58 @@
+/* Linear-style design tokens */
+:root {
+  --lnr-bg: #0d0d10;
+  --lnr-sidebar: #111113;
+  --lnr-surface: #16161a;
+  --lnr-elevated: #1c1c20;
+  --lnr-border: #252528;
+  --lnr-border-strong: #2e2e33;
+  --lnr-accent: #5e6ad2;
+  --lnr-accent-hover: #6872d8;
+  --lnr-accent-muted: rgba(94, 106, 210, 0.12);
+  --lnr-text: #e1e1e3;
+  --lnr-text-muted: #8f8f9e;
+  --lnr-text-faint: #5a5a6e;
+  --lnr-success: #4caf50;
+  --lnr-warning: #f59e0b;
+  --lnr-error: #ef4444;
+  --lnr-transition: background 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+
+/* Force dark background on Mantine body */
+[data-mantine-color-scheme="dark"] {
+  --mantine-color-body: var(--lnr-bg);
+}
+
+/* Typography */
+body {
+  background: var(--lnr-bg) !important;
+  color: var(--lnr-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--lnr-border-strong) transparent;
+}
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--lnr-border-strong); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--lnr-text-faint); }
+
+/* Text selection */
+::selection {
+  background: rgba(94, 106, 210, 0.3);
+  color: var(--lnr-text);
+}
+
+/* Mantine modal overlay — darker */
+.mantine-Overlay-root {
+  background: rgba(0, 0, 0, 0.65) !important;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+}

@@ -2,14 +2,11 @@
 import { createTheme, rem } from "@mantine/core";
 
 export const theme = createTheme({
-  defaultRadius: 0, // Sharp corners - style
+  defaultColorScheme: "dark",
+  defaultRadius: "4px",
   cursorType: "pointer",
 
-  primaryColor: "slate",
-  primaryShade: { light: 6, dark: 5 },
-
-  // inspired typography - Inter font family
-  fontFamily: `"Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif`,
+  fontFamily: `Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif`,
 
   fontSizes: {
     xs: rem(11),
@@ -19,116 +16,12 @@ export const theme = createTheme({
     xl: rem(16),
   },
 
-  colors: {
-    slate: [
-      "#f8fafc",
-      "#f1f5f9",
-      "#e2e8f0",
-      "#cbd5e1",
-      "#94a3b8",
-      "#64748b", // ⬅️ primary - modern slate
-      "#475569",
-      "#334155",
-      "#1e293b",
-      "#0f172a",
-    ],
-    neutral: [
-      "#ffffff",
-      "#f8fafc",
-      "#f1f5f9",
-      "#e2e8f0",
-      "#cbd5e1",
-      "#94a3b8",
-      "#64748b",
-      "#475569", // Subtle borders
-      "#334155",
-      "#1e293b",
-    ],
-    success: [
-      "#f0fdf4",
-      "#dcfce7",
-      "#bbf7d0",
-      "#86efac",
-      "#4ade80",
-      "#22c55e", // ⬅️ clean green but muted
-      "#16a34a",
-      "#15803d",
-      "#166534",
-      "#14532d",
-    ],
-    warning: [
-      "#fffbeb",
-      "#fef3c7",
-      "#fde68a",
-      "#fcd34d",
-      "#fbbf24",
-      "#f59e0b", // ⬅️ clean amber
-      "#d97706",
-      "#b45309",
-      "#92400e",
-      "#78350f",
-    ],
-    error: [
-      "#fef2f2",
-      "#fecaca",
-      "#fca5a5",
-      "#f87171",
-      "#ef4444",
-      "#dc2626", // ⬅️ clean red but restrained
-      "#b91c1c",
-      "#991b1b",
-      "#7f1d1d",
-      "#450a0a",
-    ],
-    info: [
-      "#f0f9ff",
-      "#e0f2fe",
-      "#bae6fd",
-      "#7dd3fc",
-      "#38bdf8",
-      "#0ea5e9", // ⬅️ clean blue
-      "#0284c7",
-      "#0369a1",
-      "#075985",
-      "#0c4a6e",
-    ],
-  },
-
-  headings: {
-    fontFamily: `"Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif`,
-    fontWeight: "500", // Modern medium weight
-    sizes: {
-      h1: {
-        fontSize: rem(32),
-        lineHeight: "1.2",
-        fontWeight: "600",
-      },
-      h2: {
-        fontSize: rem(24),
-        lineHeight: "1.25",
-        fontWeight: "600",
-      },
-      h3: {
-        fontSize: rem(20),
-        lineHeight: "1.3",
-        fontWeight: "600",
-      },
-      h4: {
-        fontSize: rem(16),
-        lineHeight: "1.35",
-        fontWeight: "500",
-      },
-      h5: {
-        fontSize: rem(14),
-        lineHeight: "1.4",
-        fontWeight: "500",
-      },
-      h6: {
-        fontSize: rem(13),
-        lineHeight: "1.45",
-        fontWeight: "500",
-      },
-    },
+  lineHeights: {
+    xs: "1.4",
+    sm: "1.4",
+    md: "1.4",
+    lg: "1.4",
+    xl: "1.4",
   },
 
   spacing: {
@@ -139,46 +32,127 @@ export const theme = createTheme({
     xl: rem(40),
   },
 
-  // Clean, minimal shadows - style
-  shadows: {
-    xs: "0 1px 2px 0 rgb(0 0 0 / 0.02)",
-    sm: "0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05)",
-    md: "0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.06)",
-    lg: "0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07)",
-    xl: "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
+  // Linear's indigo accent — 10 shades
+  colors: {
+    accent: [
+      "#eef0fc",
+      "#d5d9f7",
+      "#b3baef",
+      "#8f99e7",
+      "#7280de",
+      "#5e6ad2", // ← primary
+      "#5460c4",
+      "#4a55b5",
+      "#3d4796",
+      "#303878",
+    ],
+    // Dark surface palette — used by Mantine dark mode internals
+    dark: [
+      "#e1e1e3", // 0 — lightest (text primary in dark mode)
+      "#8f8f9e", // 1 — text muted
+      "#5a5a6e", // 2 — text faint / dimmed
+      "#2e2e33", // 3 — border strong
+      "#252528", // 4 — border subtle / default input border
+      "#1c1c20", // 5 — elevated surface (modal, dropdown)
+      "#16161a", // 6 — card / default input bg
+      "#111113", // 7 — body background (Mantine maps dark[7] → body in dark mode)
+      "#0d0d10", // 8
+      "#080809", // 9
+    ],
+    success: [
+      "#f0fdf4", "#dcfce7", "#bbf7d0", "#86efac", "#4ade80",
+      "#4caf50", "#3d9b42", "#2d8a34", "#1e6b25", "#0f4c17",
+    ],
+    warning: [
+      "#fffbeb", "#fef3c7", "#fde68a", "#fcd34d", "#fbbf24",
+      "#f59e0b", "#d97706", "#b45309", "#92400e", "#78350f",
+    ],
+    error: [
+      "#fef2f2", "#fee2e2", "#fecaca", "#fca5a5", "#f87171",
+      "#ef4444", "#dc2626", "#b91c1c", "#991b1b", "#7f1d1d",
+    ],
   },
 
-  // style components
+  primaryColor: "accent",
+  primaryShade: 5,
+
+  shadows: {
+    xs: "0 1px 2px 0 rgba(0,0,0,0.3)",
+    sm: "0 1px 4px 0 rgba(0,0,0,0.4)",
+    md: "0 4px 12px rgba(0,0,0,0.5)",
+    lg: "0 8px 24px rgba(0,0,0,0.5)",
+    xl: "0 16px 40px rgba(0,0,0,0.6)",
+  },
+
+  headings: {
+    fontFamily: `Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    fontWeight: "600",
+    sizes: {
+      h1: { fontSize: rem(24), lineHeight: "1.3", fontWeight: "600" },
+      h2: { fontSize: rem(20), lineHeight: "1.35", fontWeight: "600" },
+      h3: { fontSize: rem(16), lineHeight: "1.4", fontWeight: "600" },
+      h4: { fontSize: rem(14), lineHeight: "1.4", fontWeight: "500" },
+      h5: { fontSize: rem(13), lineHeight: "1.4", fontWeight: "500" },
+      h6: { fontSize: rem(12), lineHeight: "1.45", fontWeight: "500" },
+    },
+  },
+
   components: {
     Button: {
-      defaultProps: {
-        size: "sm",
-      },
+      defaultProps: { size: "sm" },
       styles: {
         root: {
-          borderRadius: 0, // Sharp corners
           fontWeight: 500,
           fontSize: rem(13),
-          transition: "all 100ms cubic-bezier(0.4, 0, 0.2, 1)",
-          border: "1px solid var(--mantine-color-neutral-4)",
-          "&:hover": {
-            transform: "none",
-            backgroundColor: "var(--mantine-color-neutral-2)",
-          },
+          transition: "var(--lnr-transition)",
+          borderRadius: "4px",
+        },
+      },
+    },
+
+    Paper: {
+      defaultProps: { shadow: "none", radius: "4px" },
+      styles: {
+        root: {
+          backgroundColor: "var(--lnr-surface)",
+          border: "1px solid var(--lnr-border)",
+          borderRadius: "4px",
         },
       },
     },
 
     Card: {
-      defaultProps: {
-        shadow: "sm",
-        radius: 0,
-      },
+      defaultProps: { shadow: "none", radius: "4px" },
       styles: {
         root: {
-          border: "1px solid var(--mantine-color-neutral-3)",
-          backgroundColor: "var(--mantine-color-neutral-0)",
-          borderRadius: 0,
+          backgroundColor: "var(--lnr-surface)",
+          border: "1px solid var(--lnr-border)",
+          borderRadius: "4px",
+        },
+      },
+    },
+
+    Modal: {
+      defaultProps: { radius: "6px", size: "md" },
+      styles: {
+        content: {
+          backgroundColor: "var(--lnr-elevated)",
+          border: "1px solid var(--lnr-border-strong)",
+          borderRadius: "6px",
+        },
+        header: {
+          backgroundColor: "var(--lnr-elevated)",
+          paddingBottom: rem(16),
+          marginBottom: rem(4),
+          borderBottom: "1px solid var(--lnr-border)",
+        },
+        title: {
+          fontWeight: 600,
+          fontSize: rem(14),
+          color: "var(--lnr-text)",
+        },
+        body: {
+          padding: rem(24),
         },
       },
     },
@@ -186,112 +160,174 @@ export const theme = createTheme({
     Input: {
       styles: {
         input: {
-          borderRadius: 0,
-          border: "1px solid var(--mantine-color-neutral-4)",
+          backgroundColor: "var(--lnr-surface)",
+          border: "1px solid var(--lnr-border-strong)",
+          borderRadius: "4px",
           fontSize: rem(13),
-          backgroundColor: "var(--mantine-color-neutral-0)",
-          transition: "all 100ms cubic-bezier(0.4, 0, 0.2, 1)",
+          color: "var(--lnr-text)",
+          transition: "border-color 120ms ease",
           "&:focus": {
-            borderColor: "var(--mantine-color-slate-6)",
-            boxShadow: "inset 0 0 0 1px var(--mantine-color-slate-6)",
+            borderColor: "var(--lnr-accent)",
+            outline: "none",
+          },
+          "&::placeholder": {
+            color: "var(--lnr-text-faint)",
           },
         },
-      },
-    },
-
-    Paper: {
-      defaultProps: {
-        shadow: "xs",
-        radius: 0,
-      },
-      styles: {
-        root: {
-          border: "1px solid var(--mantine-color-neutral-3)",
-          borderRadius: 0,
-        },
-      },
-    },
-
-    Modal: {
-      styles: {
-        content: {
-          borderRadius: 0,
-          border: "1px solid var(--mantine-color-neutral-3)",
-        },
-        header: {
-          borderBottom: "1px solid var(--mantine-color-neutral-3)",
-          paddingBottom: rem(16),
-          marginBottom: rem(16),
-        },
-      },
-    },
-
-    Divider: {
-      styles: {
-        root: {
-          borderColor: "var(--mantine-color-neutral-3)",
+        label: {
+          fontSize: rem(12),
+          fontWeight: 500,
+          color: "var(--lnr-text-muted)",
+          marginBottom: rem(4),
         },
       },
     },
 
     TextInput: {
       styles: {
-        input: {
-          borderRadius: 0,
-          fontSize: rem(13),
-        },
+        input: { borderRadius: "4px", fontSize: rem(13) },
       },
     },
 
     Select: {
       styles: {
-        input: {
-          borderRadius: 0,
+        input: { borderRadius: "4px", fontSize: rem(13) },
+        dropdown: {
+          backgroundColor: "var(--lnr-elevated)",
+          border: "1px solid var(--lnr-border-strong)",
+          borderRadius: "4px",
+        },
+        option: {
+          fontSize: rem(13),
+          borderRadius: "3px",
+          "&[data-selected]": {
+            backgroundColor: "var(--lnr-accent-muted)",
+            color: "var(--lnr-accent)",
+          },
+          "&[data-hovered]": {
+            backgroundColor: "rgba(255,255,255,0.05)",
+          },
+        },
+      },
+    },
+
+    Tabs: {
+      styles: {
+        tab: {
+          fontSize: rem(12),
+          fontWeight: 500,
+          color: "var(--lnr-text-muted)",
+          borderColor: "transparent",
+          transition: "var(--lnr-transition)",
+          padding: `${rem(6)} ${rem(12)}`,
+          "&[data-active]": {
+            color: "var(--lnr-text)",
+            borderBottomColor: "var(--lnr-accent)",
+          },
+          "&:hover:not([data-active])": {
+            color: "var(--lnr-text)",
+            backgroundColor: "transparent",
+          },
+        },
+        list: {
+          borderBottom: "1px solid var(--lnr-border)",
+          gap: rem(4),
+        },
+      },
+    },
+
+    Table: {
+      styles: {
+        table: {
           fontSize: rem(13),
         },
+        thead: {
+          borderBottom: "1px solid var(--lnr-border)",
+        },
+        th: {
+          fontSize: rem(11),
+          fontWeight: 500,
+          color: "var(--lnr-text-faint)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          padding: `${rem(8)} ${rem(12)}`,
+          borderBottom: "none",
+        },
+        td: {
+          padding: `${rem(8)} ${rem(12)}`,
+          color: "var(--lnr-text)",
+          borderBottom: "1px solid var(--lnr-border)",
+        },
+        tr: {
+          "&:hover": {
+            backgroundColor: "rgba(255,255,255,0.02)",
+          },
+        },
+      },
+    },
+
+    Badge: {
+      styles: {
+        root: {
+          fontWeight: 500,
+          fontSize: rem(11),
+          borderRadius: "999px",
+          textTransform: "none",
+          letterSpacing: 0,
+        },
+      },
+    },
+
+    Tooltip: {
+      defaultProps: { withArrow: false },
+      styles: {
+        tooltip: {
+          backgroundColor: "var(--lnr-elevated)",
+          border: "1px solid var(--lnr-border-strong)",
+          color: "var(--lnr-text)",
+          fontSize: rem(12),
+          borderRadius: "4px",
+          padding: `${rem(4)} ${rem(8)}`,
+        },
+      },
+    },
+
+    ActionIcon: {
+      styles: {
+        root: {
+          transition: "var(--lnr-transition)",
+          borderRadius: "4px",
+        },
+      },
+    },
+
+    Divider: {
+      styles: {
+        root: { borderColor: "var(--lnr-border)" },
       },
     },
 
     Checkbox: {
       styles: {
-        input: {
-          borderRadius: 0,
-        },
+        input: { borderRadius: "3px" },
       },
     },
 
-    Radio: {
+    NumberInput: {
       styles: {
-        input: {
-          borderRadius: "50%",
-        },
+        input: { borderRadius: "4px", fontSize: rem(13) },
       },
-    },
-  },
-
-  other: {
-    borderRadius: 0, // Sharp corners
-    transitionSpeed: "100ms", // Quick and snappy
-    borderColor: "var(--mantine-color-neutral-3)",
-    elevation: {
-      subtle: "0 1px 2px rgba(0,0,0,0.02)",
-      card: "0 2px 4px rgba(0,0,0,0.05)",
-      elevated: "0 4px 8px rgba(0,0,0,0.06)",
-      floating: "0 8px 16px rgba(0,0,0,0.08)",
     },
   },
 });
 
-// Clean, modern palette for charts and data visualization
-export const colors = [
-  "#64748b", // slate
-  "#22c55e", // green
-  "#f59e0b", // amber
-  "#dc2626", // red
-  "#0ea5e9", // blue
-  "#8b5cf6", // purple
-  "#06b6d4", // cyan
-  "#84cc16", // lime
-  "#f97316", // orange
-  "#ec4899", // pink
+export const chartColors = [
+  "#5e6ad2",
+  "#4caf50",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+  "#8b5cf6",
+  "#f97316",
+  "#ec4899",
 ];
