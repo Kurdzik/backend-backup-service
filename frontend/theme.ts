@@ -2,7 +2,6 @@
 import { createTheme, rem } from "@mantine/core";
 
 export const theme = createTheme({
-  defaultColorScheme: "dark",
   defaultRadius: "4px",
   cursorType: "pointer",
 

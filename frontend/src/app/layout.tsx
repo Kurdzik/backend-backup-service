@@ -22,13 +22,14 @@ export default function RootLayout({ children }: { children: any }) {
       <title>Backup Manager</title>
       <head>
         <ColorSchemeScript defaultColorScheme="dark" />
+
         <meta
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no"
         />
       </head>
       <body>
-        <MantineProvider theme={theme} forceColorScheme="dark">
+        <MantineProvider theme={theme} defaultColorScheme="dark">
           <Notifications position="bottom-center" />
           {children}
         </MantineProvider>
