@@ -2,32 +2,34 @@
 
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
+import "./globals.css";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import { Inter } from "next/font/google";
 
 import React from "react";
 import { theme } from "../../theme";
-import Link from "next/link";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
 
 export default function RootLayout({ children }: { children: any }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.className}>
       <title>Backup Manager</title>
       <head>
-        <ColorSchemeScript />
-        <Link rel="shortcut icon" href="/favicon.ico" />
+        <ColorSchemeScript defaultColorScheme="dark" />
+
         <meta
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no"
         />
       </head>
-      <body
-        style={{
-          background:
-            "linear-gradient(135deg, var(--mantine-color-slate-0) 0%, var(--mantine-color-slate-0) 25%, var(--mantine-color-slate-2) 100%)",
-        }}
-      >
-        <MantineProvider theme={theme}>
+      <body>
+        <MantineProvider theme={theme} defaultColorScheme="dark">
           <Notifications position="bottom-center" />
           {children}
         </MantineProvider>

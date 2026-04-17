@@ -60,13 +60,13 @@ interface NotificationState {
 
 const getSourceIcon = (sourceType: string) => {
     const type = sourceType.toLowerCase()
-    if (type.includes('postgres') || type.includes('mysql') || type.includes('database')) {
+    if (type === 'postgres' || type === 'mysql' || type === 'mongodb') {
         return <IconDatabase size={16} />
     }
-    if (type.includes('server') || type.includes('ssh')) {
+    if (type === 'elasticsearch' || type === 'qdrant') {
         return <IconServer size={16} />
     }
-    if (type.includes('s3') || type.includes('cloud')) {
+    if (type === 'minio' || type === 's3') {
         return <IconCloud size={16} />
     }
     return <IconFolder size={16} />

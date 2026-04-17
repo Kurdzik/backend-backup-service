@@ -46,7 +46,7 @@ class RestoreBackupRequest(BaseModel):
 
 
 class AddBackupSourceRequest(BaseModel):
-    source_type: Literal["vault", "qdrant", "postgres", "elasticsearch"]
+    source_type: Literal["vault", "qdrant", "postgres", "elasticsearch", "mysql", "mongodb", "minio"]
     source_name: Optional[str] = None
     credentials: Credentials
 

@@ -1,348 +1,179 @@
 "use client";
 
-import {
-  Box,
-  Stack,
-  Text,
-  ScrollArea,
-  Group,
-  ThemeIcon,
-  UnstyledButton,
-  Divider,
-  ActionIcon,
-  Tooltip,
-} from "@mantine/core";
+import { Box, Stack, Text, ScrollArea, Tooltip } from "@mantine/core";
+import { useMantineColorScheme } from "@mantine/core";
 import {
   IconDatabase,
   IconCloud,
   IconLogout,
   IconAugmentedReality,
   IconCalendarTime,
-  IconChevronLeft,
-  IconChevronRight,
   IconUser,
   IconApps,
+  IconSun,
+  IconMoon,
 } from "@tabler/icons-react";
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import classes from "@/components/Sidebar.module.css";
 import { removeAuthCookie } from "@/lib/cookies";
 
+interface NavItem {
+  icon: React.ReactNode;
+  label: string;
+  route?: string;
+}
+
+const mainItems: NavItem[] = [
+  { icon: <IconApps size={16} stroke={1.5} />, label: "Connected Applications", route: "/ui/connected_apps" },
+  { icon: <IconCloud size={16} stroke={1.5} />, label: "Backup Destinations", route: "/ui/backup_destinations" },
+  { icon: <IconCalendarTime size={16} stroke={1.5} />, label: "Backup Schedules", route: "/ui/backup_schedules" },
+  { icon: <IconDatabase size={16} stroke={1.5} />, label: "Manage Backups", route: "/ui/backups" },
+];
+
+const bottomItems: NavItem[] = [
+  { icon: <IconUser size={16} stroke={1.5} />, label: "User Information", route: "/ui/user_info" },
+  { icon: <IconLogout size={16} stroke={1.5} />, label: "Logout" },
+];
+
 interface SidebarItemProps {
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
   onClick?: () => void;
-  href?: string;
-  badge?: string | number;
-  status?: "online" | "warning" | "error" | "offline";
-  collapsed?: boolean;
 }
 
-interface MainItemType {
-  icon: React.ReactNode;
-  label: string;
-  route: string;
-  badge?: string | number;
-  status?: "online" | "warning" | "error" | "offline";
-}
-
-const mainItems: MainItemType[] = [
-  {
-    icon: <IconApps size={16} stroke={1.5} />,
-    label: "Connected Applications",
-    route: "/ui/connected_apps",
-  },
-  {
-    icon: <IconCloud size={16} stroke={1.5} />,
-    label: "Backup Destinations",
-    route: "/ui/backup_destinations",
-  },
-  {
-    icon: <IconCalendarTime size={16} stroke={1.5} />,
-    label: "Backup Schedules",
-    route: "/ui/backup_schedules",
-  },
-  {
-    icon: <IconDatabase size={16} stroke={1.5} />,
-    label: "Manage Backups",
-    route: "/ui/backups",
-  },
-];
-
-const bottomItems = [
-  {
-    icon: <IconUser size={16} stroke={1.5} />,
-    label: "User Information",
-    route: "/ui/user_info",
-  },
-  {
-    icon: <IconLogout size={16} stroke={1.5} />,
-    label: "Logout",
-  },
-];
-
-const StatusDot = ({
-  status,
-}: {
-  status?: "online" | "warning" | "error" | "offline";
-}) => {
-  if (!status) return null;
-
-  return <Box className={`${classes.statusDot} ${classes[status]}`} />;
-};
-
-const ItemBadge = ({ badge }: { badge?: string | number }) => {
-  if (!badge) return null;
-
-  return (
-    <Text size="xs" fw={500} className={classes.itemBadge}>
-      {badge}
-    </Text>
-  );
-};
-
-const SidebarItem = ({
-  icon,
-  label,
-  active = false,
-  onClick,
-  href,
-  badge,
-  status,
-  collapsed = false,
-}: SidebarItemProps) => {
-  const buttonContent = (
-    <UnstyledButton
-      onClick={onClick}
+const SidebarItem = ({ item, active, collapsed, onClick }: SidebarItemProps) => {
+  const inner = (
+    <button
+      className={classes.navItem}
       data-active={active || undefined}
-      className={classes.sidebarItem}
+      onClick={onClick}
     >
-      <ThemeIcon
-        variant="light"
-        size={28}
-        radius={0}
-        className={classes.itemIcon}
-        color={active ? "slate" : "gray"}
-      >
-        {icon}
-      </ThemeIcon>
-
-      {!collapsed && (
-        <>
-          <Text
-            size="sm"
-            fw={active ? 500 : 400}
-            className={classes.itemText}
-          >
-            {label}
-          </Text>
-
-          <Group gap={6} align="center" wrap="nowrap">
-            <ItemBadge badge={badge} />
-            <StatusDot status={status} />
-          </Group>
-        </>
-      )}
-    </UnstyledButton>
+      <span className={classes.navItemIcon}>{item.icon}</span>
+      {!collapsed && <span className={classes.navItemLabel}>{item.label}</span>}
+    </button>
   );
 
-  const content = collapsed ? (
-    <Tooltip label={label} position="right" withArrow offset={8}>
-      {buttonContent}
+  const wrapped = collapsed ? (
+    <Tooltip label={item.label} position="right" offset={8}>
+      {inner}
     </Tooltip>
-  ) : (
-    buttonContent
-  );
+  ) : inner;
 
-  if (href) {
+  if (item.route) {
     return (
-      <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
-        {content}
+      <Link href={item.route} style={{ textDecoration: "none", display: "block" }}>
+        {wrapped}
       </Link>
     );
   }
 
-  return content;
+  return wrapped;
 };
 
 export const SidebarComponent = () => {
-  const [activeItem, setActiveItem] = React.useState("Connected Applications");
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedActiveItem = localStorage.getItem("sidebar-active-item");
-      const savedCollapsed = localStorage.getItem("sidebar-collapsed");
-
-      if (savedActiveItem) {
-        setActiveItem(savedActiveItem);
-      }
-
-      if (savedCollapsed) {
-        setCollapsed(JSON.parse(savedCollapsed));
-      }
-    }
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved) setCollapsed(JSON.parse(saved));
   }, []);
 
-  const handleItemClick = (label: string) => {
-    setActiveItem(label);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebar-active-item", label);
-    }
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("sidebar-collapsed", JSON.stringify(next));
   };
 
   const handleLogout = async () => {
     try {
       await removeAuthCookie();
       window.location.href = "/";
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
-  };
-
-  const toggleCollapsed = () => {
-    const newCollapsed = !collapsed;
-    setCollapsed(newCollapsed);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebar-collapsed", JSON.stringify(newCollapsed));
+    } catch (e) {
+      console.error("Logout error:", e);
     }
   };
 
   return (
     <Box
       className={classes.sidebarContainer}
-      style={{
-        width: collapsed ? "80px" : "280px",
-        transition: "width 150ms cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
+      data-collapsed={collapsed || undefined}
+      style={{ transition: "width 150ms ease" }}
     >
       {/* Header */}
       <Box className={classes.sidebarHeader}>
-        <Group gap="sm" align="center" justify="space-between">
-          {!collapsed && (
-            <Group gap={10} align="center">
-              <ThemeIcon
-                size={28}
-                radius={0}
-                variant="light"
-                color="slate"
-              >
-                <IconAugmentedReality size={16} stroke={2} />
-              </ThemeIcon>
-              <Text fw={600} size="sm" className={classes.appTitle}>
-                Backup Manager
-              </Text>
-            </Group>
-          )}
-          {collapsed && (
-            <ThemeIcon
-              size={28}
-              radius={0}
-              variant="light"
-              color="slate"
-            >
-              <IconAugmentedReality size={16} stroke={2} />
-            </ThemeIcon>
-          )}
-        </Group>
+        <Box className={classes.appIcon}>
+          <IconAugmentedReality size={12} stroke={2} />
+        </Box>
+        {!collapsed && <Text className={classes.appTitle}>Backup Manager</Text>}
       </Box>
 
-      <Divider className={classes.headerDivider} />
-
-      {/* Collapse Toggle */}
-      <Box p="8px">
-        <Group justify={collapsed ? "center" : "flex-end"}>
-          <ActionIcon
-            variant="subtle"
-            size="sm"
-            onClick={toggleCollapsed}
-            className={classes.collapseButton}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? (
-              <IconChevronRight size={16} stroke={2} />
-            ) : (
-              <IconChevronLeft size={16} stroke={2} />
-            )}
-          </ActionIcon>
-        </Group>
-      </Box>
-
-      {/* Main Navigation */}
-      <ScrollArea flex={1} p="12px" className={classes.scrollArea}>
-        <Stack gap={8}>
-          <Box className={classes.menuSection}>
-            {!collapsed && (
-              <Text
-                size="xs"
-                fw={500}
-                c="dimmed"
-                tt="uppercase"
-                mb={8}
-                className={classes.sectionLabel}
-              >
-                Management
-              </Text>
-            )}
-
-            <Stack gap={2}>
-              {mainItems.map((item) => (
-                <SidebarItem
-                  key={item.label}
-                  icon={item.icon}
-                  label={item.label}
-                  active={activeItem === item.label}
-                  href={item.route}
-                  badge={item.badge}
-                  status={item.status}
-                  collapsed={collapsed}
-                  onClick={() => handleItemClick(item.label)}
-                />
-              ))}
-            </Stack>
-          </Box>
+      {/* Main nav */}
+      <ScrollArea className={classes.scrollArea}>
+        <Stack gap={2}>
+          {!collapsed && <Text className={classes.sectionLabel}>Management</Text>}
+          {mainItems.map((item) => (
+            <SidebarItem
+              key={item.label}
+              item={item}
+              active={!!item.route && pathname.startsWith(item.route)}
+              collapsed={collapsed}
+            />
+          ))}
         </Stack>
       </ScrollArea>
 
-      {/* Bottom Section */}
+      {/* Bottom */}
       <Box className={classes.sidebarBottom}>
-        <Divider className={classes.bottomDivider} />
+        <Stack gap={2}>
+          {!collapsed && <Text className={classes.sectionLabel} style={{ marginTop: 0 }}>Account</Text>}
+          {bottomItems.map((item) => (
+            <SidebarItem
+              key={item.label}
+              item={item}
+              active={!!item.route && pathname.startsWith(item.route)}
+              collapsed={collapsed}
+              onClick={item.label === "Logout" ? handleLogout : undefined}
+            />
+          ))}
+        </Stack>
+        {/* Theme toggle */}
+        <Tooltip label={colorScheme === "dark" ? "Bright mode" : "Black mode"} position="right" offset={8} disabled={!collapsed}>
+          <button
+            onClick={() => toggleColorScheme()}
+            className={classes.navItem}
+            style={{ marginTop: 4, justifyContent: collapsed ? "center" : undefined }}
+            aria-label="Toggle color scheme"
+          >
+            <span className={classes.navItemIcon}>
+              {colorScheme === "dark"
+                ? <IconSun size={16} stroke={1.5} />
+                : <IconMoon size={16} stroke={1.5} />}
+            </span>
+            {!collapsed && (
+              <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>
+                {colorScheme === "dark" ? "Bright mode" : "Black mode"}
+              </span>
+            )}
+          </button>
+        </Tooltip>
 
-        <Box p="12px">
-          {!collapsed && (
-            <Text
-              size="xs"
-              fw={500}
-              c="dimmed"
-              tt="uppercase"
-              mb={8}
-              className={classes.sectionLabel}
-            >
-              Account
-            </Text>
-          )}
-
-          <Stack gap={2}>
-            {bottomItems.map((item) => (
-              <SidebarItem
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                active={activeItem === item.label}
-                href={item.route}
-                collapsed={collapsed}
-                onClick={() => {
-                  if (item.label === "Logout") {
-                    handleLogout();
-                  } else {
-                    handleItemClick(item.label);
-                  }
-                }}
-              />
-            ))}
-          </Stack>
-        </Box>
+        {/* Collapse toggle */}
+        <button
+          onClick={toggleCollapsed}
+          className={classes.navItem}
+          style={{ marginTop: 2, justifyContent: collapsed ? "center" : undefined }}
+          aria-label={collapsed ? "Expand" : "Collapse"}
+        >
+          <span className={classes.navItemIcon} style={{ opacity: 0.4, fontSize: 11 }}>
+            {collapsed ? "→" : "←"}
+          </span>
+          {!collapsed && <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>Collapse</span>}
+        </button>
       </Box>
     </Box>
   );

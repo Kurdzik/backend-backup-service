@@ -23,11 +23,13 @@ import {
     IconDatabase,
     IconSearch,
     IconLock,
-    IconBox
+    IconBox,
+    IconServer,
+    IconCloudUpload
 } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
-const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant"]
+const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant", "mysql", "mongodb", "minio"]
 
 interface Credentials {
     url: string
@@ -338,6 +340,104 @@ function ExportVaultCredentials({ onCredentialsChange, initialValues }: Credenti
 
 
 
+function ExportMySQLCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [host, setHost] = useState("")
+    const [port, setPort] = useState<number | undefined>()
+    const [database, setDatabase] = useState("")
+    const [username, setUsername] = useState("")
+    const [password, setPassword] = useState("")
+
+    useEffect(() => {
+        if (!initialValues) {
+            setHost(""); setPort(undefined); setDatabase(""); setUsername(""); setPassword("")
+            return
+        }
+        const match = initialValues.url?.match(/mysql:\/\/([^:]+):(\d+)\/(.+)/)
+        if (match) { setHost(match[1]); setPort(parseInt(match[2])); setDatabase(match[3]) }
+        setUsername(initialValues.login || "")
+        setPassword("")
+    }, [initialValues])
+
+    useEffect(() => {
+        onCredentialsChange({
+            url: host && port ? `mysql://${host}:${port}/${database}` : "",
+            login: username || null,
+            password: password || null,
+            apiKey: null
+        })
+    }, [host, port, database, username, password, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput label="Host" value={host} onChange={(e) => setHost(e.currentTarget.value)} required />
+            <NumberInput label="Port" value={port ?? 3306} onChange={(v) => setPort(typeof v === "number" ? v : undefined)} required />
+            <TextInput label="Database" value={database} onChange={(e) => setDatabase(e.currentTarget.value)} />
+            <TextInput label="Username" value={username} onChange={(e) => setUsername(e.currentTarget.value)} required />
+            <TextInput type="password" label="Password" value={password} onChange={(e) => setPassword(e.currentTarget.value)} placeholder={initialValues ? "Leave blank to keep existing" : ""} required={!initialValues} />
+        </Stack>
+    )
+}
+
+function ExportMongoDBCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [uri, setUri] = useState("")
+    const [username, setUsername] = useState("")
+    const [password, setPassword] = useState("")
+
+    useEffect(() => {
+        if (!initialValues) { setUri(""); setUsername(""); setPassword(""); return }
+        setUri(initialValues.url || "")
+        setUsername(initialValues.login || "")
+        setPassword("")
+    }, [initialValues])
+
+    useEffect(() => {
+        onCredentialsChange({
+            url: uri,
+            login: username || null,
+            password: password || null,
+            apiKey: null
+        })
+    }, [uri, username, password, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput label="Connection URI or host:port" value={uri} onChange={(e) => setUri(e.currentTarget.value)} placeholder="mongodb://host:27017 or host:27017" required />
+            <TextInput label="Username (optional)" value={username} onChange={(e) => setUsername(e.currentTarget.value)} placeholder={initialValues ? "Leave blank to keep existing" : ""} />
+            <TextInput type="password" label="Password (optional)" value={password} onChange={(e) => setPassword(e.currentTarget.value)} placeholder={initialValues ? "Leave blank to keep existing" : ""} />
+        </Stack>
+    )
+}
+
+function ExportMinIOCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [endpoint, setEndpoint] = useState("")
+    const [accessKey, setAccessKey] = useState("")
+    const [secretKey, setSecretKey] = useState("")
+
+    useEffect(() => {
+        if (!initialValues) { setEndpoint(""); setAccessKey(""); setSecretKey(""); return }
+        setEndpoint(initialValues.url || "")
+        setAccessKey(initialValues.login || "")
+        setSecretKey("")
+    }, [initialValues])
+
+    useEffect(() => {
+        onCredentialsChange({
+            url: endpoint,
+            login: accessKey || null,
+            password: secretKey || null,
+            apiKey: null
+        })
+    }, [endpoint, accessKey, secretKey, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput label="Endpoint URL" value={endpoint} onChange={(e) => setEndpoint(e.currentTarget.value)} placeholder="http://minio.example.com:9000" required />
+            <TextInput label="Access Key" value={accessKey} onChange={(e) => setAccessKey(e.currentTarget.value)} required />
+            <TextInput type="password" label="Secret Key" value={secretKey} onChange={(e) => setSecretKey(e.currentTarget.value)} placeholder={initialValues ? "Leave blank to keep existing" : ""} required={!initialValues} />
+        </Stack>
+    )
+}
+
 export function BackupSourcesManager() {
     const [activeTab, setActiveTab] = useState<string | null>("postgres")
     const [modalOpened, setModalOpened] = useState(false)
@@ -407,6 +507,12 @@ export function BackupSourcesManager() {
                 return <ExportElasticsearchCredentials {...props} />
             case "vault":
                 return <ExportVaultCredentials {...props} />
+            case "mysql":
+                return <ExportMySQLCredentials {...props} />
+            case "mongodb":
+                return <ExportMongoDBCredentials {...props} />
+            case "minio":
+                return <ExportMinIOCredentials {...props} />
             default:
                 return null
         }
@@ -633,6 +739,11 @@ export function BackupSourcesManager() {
                 return !!(credentials.login && (editingId || credentials.password))
             case "vault":
                 return !!(editingId || credentials.apiKey)
+            case "mysql":
+                return !!(credentials.login && (editingId || credentials.password))
+            case "minio":
+                return !!(credentials.login && (editingId || credentials.password))
+            case "mongodb":
             case "qdrant":
             case "elasticsearch":
                 return true
@@ -654,8 +765,10 @@ export function BackupSourcesManager() {
             <Table.Tbody>
                 {sources.length === 0 ? (
                     <Table.Tr>
-                        <Table.Td colSpan={4} style={{ textAlign: "center", color: "#999" }}>
-                            No sources configured
+                        <Table.Td colSpan={4}>
+                            <div style={{ textAlign: "center", padding: "32px 0", color: "var(--lnr-text-faint)", fontSize: 13 }}>
+                                No sources configured
+                            </div>
                         </Table.Td>
                     </Table.Tr>
                 ) : (
@@ -702,22 +815,35 @@ export function BackupSourcesManager() {
     )
 
     return (
-        <div style={{ padding: 20 }}>
-            <Group mb={20}>
-                <h1>Backup Sources</h1>
-                <Button 
-                    leftSection={<IconPlus size={16} />}
-                    onClick={openAddModal}
-                >
-                    Add Source
-                </Button>
-                <ActionIcon 
-                    onClick={fetchSources} 
-                    loading={loadingSources} 
-                    variant="default"
-                >
-                    <IconRefresh size={16} />
-                </ActionIcon>
+        <div>
+            <Group
+                mb={24}
+                pb={16}
+                style={{ borderBottom: "1px solid var(--lnr-border)" }}
+                justify="space-between"
+                align="center"
+            >
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--lnr-text)" }}>
+                    Connected Applications
+                </span>
+                <Group gap={8}>
+                    <ActionIcon
+                        onClick={fetchSources}
+                        loading={loadingSources}
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                    >
+                        <IconRefresh size={14} />
+                    </ActionIcon>
+                    <Button
+                        leftSection={<IconPlus size={14} />}
+                        onClick={openAddModal}
+                        size="xs"
+                    >
+                        Add Source
+                    </Button>
+                </Group>
             </Group>
 
             {notification && (
@@ -744,6 +870,15 @@ export function BackupSourcesManager() {
                         <Tabs.Tab value="qdrant" leftSection={<IconBox size={14} />}>
                             Qdrant ({getFilteredSources("qdrant").length})
                         </Tabs.Tab>
+                        <Tabs.Tab value="mysql" leftSection={<IconDatabase size={14} />}>
+                            MySQL ({getFilteredSources("mysql").length})
+                        </Tabs.Tab>
+                        <Tabs.Tab value="mongodb" leftSection={<IconServer size={14} />}>
+                            MongoDB ({getFilteredSources("mongodb").length})
+                        </Tabs.Tab>
+                        <Tabs.Tab value="minio" leftSection={<IconCloudUpload size={14} />}>
+                            MinIO ({getFilteredSources("minio").length})
+                        </Tabs.Tab>
                     </Tabs.List>
 
                     <Tabs.Panel value="postgres" pt="md">
@@ -757,6 +892,15 @@ export function BackupSourcesManager() {
                     </Tabs.Panel>
                     <Tabs.Panel value="qdrant" pt="md">
                         <SourceTable sources={getFilteredSources("qdrant")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="mysql" pt="md">
+                        <SourceTable sources={getFilteredSources("mysql")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="mongodb" pt="md">
+                        <SourceTable sources={getFilteredSources("mongodb")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="minio" pt="md">
+                        <SourceTable sources={getFilteredSources("minio")} />
                     </Tabs.Panel>
                 </Tabs>
             )}

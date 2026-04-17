@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Grid, Paper } from "@mantine/core";
+import { Box } from "@mantine/core";
 import React from "react";
 import { SidebarComponent } from "@/components/Sidebar";
 
@@ -8,42 +8,32 @@ export default function UILayout({ children }: { children: any }) {
   return (
     <Box
       style={{
-        margin: 0,
-        height: "100vh",
         display: "flex",
-        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden",
+        background: "var(--lnr-bg)",
       }}
     >
-      <Box style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        <Grid columns={27} style={{ flex: 1, display: "flex" }}>
-          <Grid.Col
-            span={"content"}
-            style={{ height: "100%", display: "flex", flexDirection: "column" }}
-          >
-            <SidebarComponent />
-          </Grid.Col>
+      <SidebarComponent />
 
-          <Grid.Col
-            span={"auto"}
-            h={"100%"}
-            style={{ overflow: "auto", scrollbarWidth: "none" }}
-          >
-            {/* <NavbarComponent /> */}
-            <Paper
-              shadow="xl"
-              pt={"1%"}
-              pl={"0.5%"}
-              pr={"1%"}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyItems: "center",
-              }}
-            >
-              {children}
-            </Paper>
-          </Grid.Col>
-        </Grid>
+      <Box
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          minWidth: 0,
+        }}
+      >
+        <Box
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "24px",
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );
