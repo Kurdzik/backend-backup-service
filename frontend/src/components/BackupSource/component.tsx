@@ -21,11 +21,11 @@ import {
     IconRefresh,
     IconCheck,
     IconDatabase,
-    IconDatabaseImport,
-    IconBolt,
+    IconBrandMysql,
+    IconBrandElastic,
     IconVault,
     IconTargetArrow,
-    IconLeaf,
+    IconBrandMongodb,
     IconBucket,
     IconBrandWindows,
 } from "@tabler/icons-react"
@@ -902,7 +902,7 @@ export function BackupSourcesManager() {
                         <Tabs.Tab value="postgres" leftSection={<IconDatabase size={14} />}>
                             PostgreSQL ({getFilteredSources("postgres").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="elasticsearch" leftSection={<IconBolt size={14} />}>
+                        <Tabs.Tab value="elasticsearch" leftSection={<IconBrandElastic size={14} />}>
                             Elasticsearch ({getFilteredSources("elasticsearch").length})
                         </Tabs.Tab>
                         <Tabs.Tab value="vault" leftSection={<IconVault size={14} />}>
@@ -911,10 +911,10 @@ export function BackupSourcesManager() {
                         <Tabs.Tab value="qdrant" leftSection={<IconTargetArrow size={14} />}>
                             Qdrant ({getFilteredSources("qdrant").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mysql" leftSection={<IconDatabaseImport size={14} />}>
+                        <Tabs.Tab value="mysql" leftSection={<IconBrandMysql size={14} />}>
                             MySQL ({getFilteredSources("mysql").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mongodb" leftSection={<IconLeaf size={14} />}>
+                        <Tabs.Tab value="mongodb" leftSection={<IconBrandMongodb size={14} />}>
                             MongoDB ({getFilteredSources("mongodb").length})
                         </Tabs.Tab>
                         <Tabs.Tab value="minio" leftSection={<IconBucket size={14} />}>

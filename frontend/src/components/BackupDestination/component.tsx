@@ -21,7 +21,7 @@ import {
     IconPlus,
     IconRefresh,
     IconCheck,
-    IconCloudUpload,
+    IconBrandAws,
     IconHardDrive,
     IconShare,
     IconTerminal2,
@@ -843,7 +843,7 @@ export function BackupDestinationsManager() {
             ) : (
                 <Tabs value={activeTab} onChange={setActiveTab}>
                     <Tabs.List>
-                        <Tabs.Tab value="s3" leftSection={<IconCloudUpload size={14} />}>
+                        <Tabs.Tab value="s3" leftSection={<IconBrandAws size={14} />}>
                             S3 ({getFilteredDestinations("s3").length})
                         </Tabs.Tab>
                         <Tabs.Tab value="smb" leftSection={<IconShare size={14} />}>

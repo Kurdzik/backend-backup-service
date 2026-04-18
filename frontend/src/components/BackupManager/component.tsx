@@ -23,11 +23,11 @@ import {
     IconRefresh,
     IconRestore,
     IconDatabase,
-    IconDatabaseImport,
-    IconBolt,
+    IconBrandMysql,
+    IconBrandElastic,
     IconVault,
     IconTargetArrow,
-    IconLeaf,
+    IconBrandMongodb,
     IconBucket,
     IconBrandWindows,
 } from "@tabler/icons-react"
@@ -65,12 +65,12 @@ interface NotificationState {
 const getSourceIcon = (sourceType: string) => {
     switch (sourceType.toLowerCase()) {
         case 'postgres':    return <IconDatabase size={16} />
-        case 'mysql':       return <IconDatabaseImport size={16} />
+        case 'mysql':       return <IconBrandMysql size={16} />
         case 'mssql':       return <IconBrandWindows size={16} />
-        case 'elasticsearch': return <IconBolt size={16} />
+        case 'elasticsearch': return <IconBrandElastic size={16} />
         case 'vault':       return <IconVault size={16} />
         case 'qdrant':      return <IconTargetArrow size={16} />
-        case 'mongodb':     return <IconLeaf size={16} />
+        case 'mongodb':     return <IconBrandMongodb size={16} />
         case 'minio':       return <IconBucket size={16} />
         default:            return <IconDatabase size={16} />
     }
