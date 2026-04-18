@@ -46,7 +46,7 @@ class RestoreBackupRequest(BaseModel):
 
 
 class AddBackupSourceRequest(BaseModel):
-    source_type: Literal["vault", "qdrant", "postgres", "elasticsearch", "mysql", "mongodb", "minio"]
+    source_type: Literal["vault", "qdrant", "postgres", "elasticsearch", "mysql", "mongodb", "minio", "mssql"]
     source_name: Optional[str] = None
     credentials: Credentials
 
@@ -58,7 +58,7 @@ class UpdateBackupSourceRequest(BaseModel):
 
 
 class AddBackupDestinationRequest(BaseModel):
-    destination_type: Literal["s3", "local_fs", "sftp", "smb"]
+    destination_type: Literal["s3", "local_fs", "sftp", "smb", "azure", "gcs"]
     destination_name: Optional[str] = None
     credentials: Credentials
     config: Optional[dict[str, str]] = None

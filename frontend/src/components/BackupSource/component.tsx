@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
-const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant", "mysql", "mongodb", "minio"]
+const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant", "mysql", "mongodb", "minio", "mssql"]
 
 interface Credentials {
     url: string
@@ -408,6 +408,41 @@ function ExportMongoDBCredentials({ onCredentialsChange, initialValues }: Creden
     )
 }
 
+function ExportMSSQLCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [host, setHost] = useState("")
+    const [port, setPort] = useState<number | undefined>()
+    const [database, setDatabase] = useState("")
+    const [username, setUsername] = useState("")
+    const [password, setPassword] = useState("")
+
+    useEffect(() => {
+        if (!initialValues) { setHost(""); setPort(undefined); setDatabase(""); setUsername(""); setPassword(""); return }
+        const match = initialValues.url?.match(/mssql:\/\/([^:]+):(\d+)\/(.+)/)
+        if (match) { setHost(match[1]); setPort(parseInt(match[2])); setDatabase(match[3]) }
+        setUsername(initialValues.login || "")
+        setPassword("")
+    }, [initialValues])
+
+    useEffect(() => {
+        onCredentialsChange({
+            url: host && port ? `mssql://${host}:${port}/${database}` : "",
+            login: username || null,
+            password: password || null,
+            apiKey: null
+        })
+    }, [host, port, database, username, password, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput label="Host" value={host} onChange={(e) => setHost(e.currentTarget.value)} placeholder="sql-server.example.com" required />
+            <NumberInput label="Port" value={port ?? 1433} onChange={(v) => setPort(typeof v === "number" ? v : undefined)} required />
+            <TextInput label="Database" value={database} onChange={(e) => setDatabase(e.currentTarget.value)} placeholder="MyDatabase" required />
+            <TextInput label="Username" value={username} onChange={(e) => setUsername(e.currentTarget.value)} required />
+            <TextInput type="password" label="Password" value={password} onChange={(e) => setPassword(e.currentTarget.value)} placeholder={initialValues ? "Leave blank to keep existing" : ""} required={!initialValues} />
+        </Stack>
+    )
+}
+
 function ExportMinIOCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
     const [endpoint, setEndpoint] = useState("")
     const [accessKey, setAccessKey] = useState("")
@@ -513,6 +548,8 @@ export function BackupSourcesManager() {
                 return <ExportMongoDBCredentials {...props} />
             case "minio":
                 return <ExportMinIOCredentials {...props} />
+            case "mssql":
+                return <ExportMSSQLCredentials {...props} />
             default:
                 return null
         }
@@ -743,6 +780,8 @@ export function BackupSourcesManager() {
                 return !!(credentials.login && (editingId || credentials.password))
             case "minio":
                 return !!(credentials.login && (editingId || credentials.password))
+            case "mssql":
+                return !!(credentials.login && (editingId || credentials.password))
             case "mongodb":
             case "qdrant":
             case "elasticsearch":
@@ -879,6 +918,9 @@ export function BackupSourcesManager() {
                         <Tabs.Tab value="minio" leftSection={<IconCloudUpload size={14} />}>
                             MinIO ({getFilteredSources("minio").length})
                         </Tabs.Tab>
+                        <Tabs.Tab value="mssql" leftSection={<IconDatabase size={14} />}>
+                            SQL Server ({getFilteredSources("mssql").length})
+                        </Tabs.Tab>
                     </Tabs.List>
 
                     <Tabs.Panel value="postgres" pt="md">
@@ -901,6 +943,9 @@ export function BackupSourcesManager() {
                     </Tabs.Panel>
                     <Tabs.Panel value="minio" pt="md">
                         <SourceTable sources={getFilteredSources("minio")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="mssql" pt="md">
+                        <SourceTable sources={getFilteredSources("mssql")} />
                     </Tabs.Panel>
                 </Tabs>
             )}

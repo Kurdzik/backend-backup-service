@@ -7,6 +7,7 @@ import {
     Modal,
     TextInput,
     NumberInput,
+    Textarea,
     Button,
     Group,
     Table,
@@ -23,11 +24,13 @@ import {
     IconCloudUpload,
     IconFolder,
     IconNetwork,
-    IconServer
+    IconServer,
+    IconBrandAzure,
+    IconBrandGoogle,
 } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
-const DESTINATION_TYPES = ["s3", "smb", "sftp", "local_fs"]
+const DESTINATION_TYPES = ["s3", "smb", "sftp", "local_fs", "azure", "gcs"]
 const LOCAL_FS_ROOT = "/mnt/backups"
 
 interface Credentials {
@@ -307,6 +310,147 @@ function DestinationFsStoreCredentials({ onCredentialsChange, initialValues }: C
 }
 
 
+function DestinationAzureCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [containerName, setContainerName] = useState<string>("")
+    const [prefix, setPrefix] = useState<string>("")
+    const [accountName, setAccountName] = useState<string>("")
+    const [accountKey, setAccountKey] = useState<string>("")
+    const [connectionString, setConnectionString] = useState<string>("")
+
+    useEffect(() => {
+        if (!initialValues) {
+            setContainerName("")
+            setPrefix("")
+            setAccountName("")
+            setAccountKey("")
+            setConnectionString("")
+            return
+        }
+
+        const url = initialValues.url
+        const match = url.match(/azure:\/\/([^/]+)\/?(.*)/)
+        if (match) {
+            setContainerName(match[1])
+            setPrefix(match[2] || "")
+        }
+        setAccountName(initialValues.login || "")
+        setAccountKey("")
+        setConnectionString("")
+    }, [initialValues])
+
+    useEffect(() => {
+        const path = prefix ? `/${prefix}` : ""
+        const credentials: Credentials = {
+            url: containerName ? `azure://${containerName}${path}` : "",
+            login: accountName || null,
+            password: accountKey || null,
+            api_key: connectionString || null
+        }
+        onCredentialsChange(credentials)
+    }, [containerName, prefix, accountName, accountKey, connectionString, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput
+                label="Container Name"
+                value={containerName}
+                onChange={(e) => setContainerName(e.currentTarget.value)}
+                placeholder="my-backups-container"
+                required
+            />
+            <TextInput
+                label="Folder Prefix (Optional)"
+                value={prefix}
+                onChange={(e) => setPrefix(e.currentTarget.value)}
+                placeholder="postgres/daily"
+            />
+            <TextInput
+                label="Storage Account Name"
+                value={accountName}
+                onChange={(e) => setAccountName(e.currentTarget.value)}
+                placeholder="mystorageaccount"
+            />
+            <TextInput
+                label="Storage Account Key"
+                type="password"
+                value={accountKey}
+                onChange={(e) => setAccountKey(e.currentTarget.value)}
+                placeholder={initialValues ? "Leave blank to keep existing" : ""}
+            />
+            <TextInput
+                label="Connection String (Optional — overrides account name/key)"
+                value={connectionString}
+                onChange={(e) => setConnectionString(e.currentTarget.value)}
+                placeholder="DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+                description="Paste the full connection string from the Azure portal if you prefer."
+            />
+        </Stack>
+    )
+}
+
+
+function DestinationGCSCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [bucketName, setBucketName] = useState<string>("")
+    const [prefix, setPrefix] = useState<string>("")
+    const [serviceAccountJson, setServiceAccountJson] = useState<string>("")
+
+    useEffect(() => {
+        if (!initialValues) {
+            setBucketName("")
+            setPrefix("")
+            setServiceAccountJson("")
+            return
+        }
+
+        const url = initialValues.url
+        const match = url.match(/gs:\/\/([^/]+)\/?(.*)/)
+        if (match) {
+            setBucketName(match[1])
+            setPrefix(match[2] || "")
+        }
+        setServiceAccountJson("")
+    }, [initialValues])
+
+    useEffect(() => {
+        const path = prefix ? `/${prefix}` : ""
+        const credentials: Credentials = {
+            url: bucketName ? `gs://${bucketName}${path}` : "",
+            login: null,
+            password: null,
+            api_key: serviceAccountJson || null
+        }
+        onCredentialsChange(credentials)
+    }, [bucketName, prefix, serviceAccountJson, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput
+                label="Bucket Name"
+                value={bucketName}
+                onChange={(e) => setBucketName(e.currentTarget.value)}
+                placeholder="my-gcs-backup-bucket"
+                required
+            />
+            <TextInput
+                label="Folder Prefix (Optional)"
+                value={prefix}
+                onChange={(e) => setPrefix(e.currentTarget.value)}
+                placeholder="postgres/daily"
+            />
+            <Textarea
+                label="Service Account JSON"
+                value={serviceAccountJson}
+                onChange={(e) => setServiceAccountJson(e.currentTarget.value)}
+                placeholder={initialValues ? "Leave blank to keep existing" : '{"type":"service_account","project_id":"..."}'}
+                description="Paste the full contents of your service account key .json file. Leave blank to use Application Default Credentials."
+                minRows={5}
+                autosize
+            />
+        </Stack>
+    )
+}
+
+
 export function BackupDestinationsManager() {
     const [activeTab, setActiveTab] = useState<string | null>("s3")
     const [modalOpened, setModalOpened] = useState(false)
@@ -388,6 +532,10 @@ export function BackupDestinationsManager() {
                 return <DestinationSftpCredentials {...props} />
             case "local_fs":
                 return <DestinationFsStoreCredentials {...props} />
+            case "azure":
+                return <DestinationAzureCredentials {...props} />
+            case "gcs":
+                return <DestinationGCSCredentials {...props} />
             default:
                 return null
         }
@@ -707,6 +855,12 @@ export function BackupDestinationsManager() {
                         <Tabs.Tab value="local_fs" leftSection={<IconFolder size={14} />}>
                             Local FS ({getFilteredDestinations("local_fs").length})
                         </Tabs.Tab>
+                        <Tabs.Tab value="azure" leftSection={<IconBrandAzure size={14} />}>
+                            Azure Blob ({getFilteredDestinations("azure").length})
+                        </Tabs.Tab>
+                        <Tabs.Tab value="gcs" leftSection={<IconBrandGoogle size={14} />}>
+                            Google Cloud ({getFilteredDestinations("gcs").length})
+                        </Tabs.Tab>
                     </Tabs.List>
 
                     <Tabs.Panel value="s3" pt="md">
@@ -720,6 +874,12 @@ export function BackupDestinationsManager() {
                     </Tabs.Panel>
                     <Tabs.Panel value="local_fs" pt="md">
                         <DestinationTable destinations={getFilteredDestinations("local_fs")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="azure" pt="md">
+                        <DestinationTable destinations={getFilteredDestinations("azure")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="gcs" pt="md">
+                        <DestinationTable destinations={getFilteredDestinations("gcs")} />
                     </Tabs.Panel>
                 </Tabs>
             )}
