@@ -425,23 +425,36 @@ export function BackupScheduleManager() {
     )
 
     return (
-        <div style={{ padding: 20 }}>
-            <Group mb={20}>
-                <h1>Backup Schedules</h1>
-                <Button
-                    leftSection={<IconPlus size={16} />}
-                    onClick={openAddModal}
-                    disabled={isLoading}
-                >
-                    Add Schedule
-                </Button>
-                <ActionIcon 
-                    onClick={fetchData} 
-                    loading={isLoading} 
-                    variant="default"
-                >
-                    <IconRefresh size={16} />
-                </ActionIcon>
+        <div>
+            <Group
+                mb={24}
+                pb={16}
+                style={{ borderBottom: "1px solid var(--lnr-border)" }}
+                justify="space-between"
+                align="center"
+            >
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--lnr-text)" }}>
+                    Backup Schedules
+                </span>
+                <Group gap={8}>
+                    <ActionIcon
+                        onClick={fetchData}
+                        loading={isLoading}
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                    >
+                        <IconRefresh size={14} />
+                    </ActionIcon>
+                    <Button
+                        leftSection={<IconPlus size={14} />}
+                        onClick={openAddModal}
+                        disabled={isLoading}
+                        size="xs"
+                    >
+                        Add Schedule
+                    </Button>
+                </Group>
             </Group>
 
             {notification && (

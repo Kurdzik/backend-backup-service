@@ -12,6 +12,8 @@ import {
   IconApps,
   IconSun,
   IconMoon,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import React from "react";
 import Link from "next/link";
@@ -32,7 +34,7 @@ const mainItems: NavItem[] = [
   { icon: <IconDatabase size={16} stroke={1.5} />, label: "Manage Backups", route: "/ui/backups" },
 ];
 
-const bottomItems: NavItem[] = [
+const accountItems: NavItem[] = [
   { icon: <IconUser size={16} stroke={1.5} />, label: "User Information", route: "/ui/user_info" },
   { icon: <IconLogout size={16} stroke={1.5} />, label: "Logout" },
 ];
@@ -104,12 +106,23 @@ export const SidebarComponent = () => {
       data-collapsed={collapsed || undefined}
       style={{ transition: "width 150ms ease" }}
     >
-      {/* Header */}
+      {/* Header — app title + collapse toggle */}
       <Box className={classes.sidebarHeader}>
         <Box className={classes.appIcon}>
           <IconAugmentedReality size={12} stroke={2} />
         </Box>
         {!collapsed && <Text className={classes.appTitle}>Backup Manager</Text>}
+        <Tooltip label={collapsed ? "Expand" : "Collapse"} position="right" offset={8}>
+          <button
+            onClick={toggleCollapsed}
+            className={classes.collapseBtn}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed
+              ? <IconChevronRight size={14} stroke={1.5} />
+              : <IconChevronLeft size={14} stroke={1.5} />}
+          </button>
+        </Tooltip>
       </Box>
 
       {/* Main nav */}
@@ -127,11 +140,12 @@ export const SidebarComponent = () => {
         </Stack>
       </ScrollArea>
 
-      {/* Bottom */}
+      {/* Bottom — account + theme toggle */}
       <Box className={classes.sidebarBottom}>
         <Stack gap={2}>
           {!collapsed && <Text className={classes.sectionLabel} style={{ marginTop: 0 }}>Account</Text>}
-          {bottomItems.map((item) => (
+
+          {accountItems.map((item) => (
             <SidebarItem
               key={item.label}
               item={item}
@@ -140,40 +154,31 @@ export const SidebarComponent = () => {
               onClick={item.label === "Logout" ? handleLogout : undefined}
             />
           ))}
-        </Stack>
-        {/* Theme toggle */}
-        <Tooltip label={colorScheme === "dark" ? "Bright mode" : "Black mode"} position="right" offset={8} disabled={!collapsed}>
-          <button
-            onClick={() => toggleColorScheme()}
-            className={classes.navItem}
-            style={{ marginTop: 4, justifyContent: collapsed ? "center" : undefined }}
-            aria-label="Toggle color scheme"
-          >
-            <span className={classes.navItemIcon}>
-              {colorScheme === "dark"
-                ? <IconSun size={16} stroke={1.5} />
-                : <IconMoon size={16} stroke={1.5} />}
-            </span>
-            {!collapsed && (
-              <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>
-                {colorScheme === "dark" ? "Bright mode" : "Black mode"}
-              </span>
-            )}
-          </button>
-        </Tooltip>
 
-        {/* Collapse toggle */}
-        <button
-          onClick={toggleCollapsed}
-          className={classes.navItem}
-          style={{ marginTop: 2, justifyContent: collapsed ? "center" : undefined }}
-          aria-label={collapsed ? "Expand" : "Collapse"}
-        >
-          <span className={classes.navItemIcon} style={{ opacity: 0.4, fontSize: 11 }}>
-            {collapsed ? "→" : "←"}
-          </span>
-          {!collapsed && <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>Collapse</span>}
-        </button>
+          {/* Theme toggle — icon only */}
+          <Tooltip
+            label={colorScheme === "dark" ? "Bright mode" : "Black mode"}
+            position="right"
+            offset={8}
+          >
+            <button
+              onClick={() => toggleColorScheme()}
+              className={classes.navItem}
+              aria-label="Toggle color scheme"
+            >
+              <span className={classes.navItemIcon}>
+                {colorScheme === "dark"
+                  ? <IconSun size={16} stroke={1.5} />
+                  : <IconMoon size={16} stroke={1.5} />}
+              </span>
+              {!collapsed && (
+                <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)" }}>
+                  {colorScheme === "dark" ? "Bright mode" : "Black mode"}
+                </span>
+              )}
+            </button>
+          </Tooltip>
+        </Stack>
       </Box>
     </Box>
   );
