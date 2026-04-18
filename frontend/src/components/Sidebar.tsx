@@ -3,13 +3,13 @@
 import { Box, Stack, Text, ScrollArea, Tooltip } from "@mantine/core";
 import { useMantineColorScheme } from "@mantine/core";
 import {
-  IconDatabase,
-  IconCloud,
+  IconArchive,
+  IconDeviceFloppy,
   IconLogout,
-  IconAugmentedReality,
-  IconCalendarTime,
+  IconShield,
+  IconCalendarStats,
   IconUser,
-  IconApps,
+  IconPlug,
   IconSun,
   IconMoon,
   IconChevronLeft,
@@ -28,10 +28,10 @@ interface NavItem {
 }
 
 const mainItems: NavItem[] = [
-  { icon: <IconApps size={16} stroke={1.5} />, label: "Connected Applications", route: "/ui/connected_apps" },
-  { icon: <IconCloud size={16} stroke={1.5} />, label: "Backup Destinations", route: "/ui/backup_destinations" },
-  { icon: <IconCalendarTime size={16} stroke={1.5} />, label: "Backup Schedules", route: "/ui/backup_schedules" },
-  { icon: <IconDatabase size={16} stroke={1.5} />, label: "Manage Backups", route: "/ui/backups" },
+  { icon: <IconPlug size={16} stroke={1.5} />, label: "Connected Applications", route: "/ui/connected_apps" },
+  { icon: <IconDeviceFloppy size={16} stroke={1.5} />, label: "Backup Destinations", route: "/ui/backup_destinations" },
+  { icon: <IconCalendarStats size={16} stroke={1.5} />, label: "Backup Schedules", route: "/ui/backup_schedules" },
+  { icon: <IconArchive size={16} stroke={1.5} />, label: "Manage Backups", route: "/ui/backups" },
 ];
 
 const accountItems: NavItem[] = [
@@ -109,7 +109,7 @@ export const SidebarComponent = () => {
       {/* Header — app title + collapse toggle */}
       <Box className={classes.sidebarHeader}>
         <Box className={classes.appIcon}>
-          <IconAugmentedReality size={12} stroke={2} />
+          <IconShield size={12} stroke={2} />
         </Box>
         {!collapsed && <Text className={classes.appTitle}>Backup Manager</Text>}
         <Tooltip label={collapsed ? "Expand" : "Collapse"} position="right" offset={8}>

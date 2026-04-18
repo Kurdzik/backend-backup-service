@@ -23,9 +23,13 @@ import {
     IconRefresh,
     IconRestore,
     IconDatabase,
-    IconServer,
-    IconFolder,
-    IconCloud
+    IconDatabaseImport,
+    IconBolt,
+    IconVault,
+    IconTargetArrow,
+    IconLeaf,
+    IconBucket,
+    IconBrandWindows,
 } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
@@ -59,17 +63,17 @@ interface NotificationState {
 }
 
 const getSourceIcon = (sourceType: string) => {
-    const type = sourceType.toLowerCase()
-    if (type === 'postgres' || type === 'mysql' || type === 'mongodb') {
-        return <IconDatabase size={16} />
+    switch (sourceType.toLowerCase()) {
+        case 'postgres':    return <IconDatabase size={16} />
+        case 'mysql':       return <IconDatabaseImport size={16} />
+        case 'mssql':       return <IconBrandWindows size={16} />
+        case 'elasticsearch': return <IconBolt size={16} />
+        case 'vault':       return <IconVault size={16} />
+        case 'qdrant':      return <IconTargetArrow size={16} />
+        case 'mongodb':     return <IconLeaf size={16} />
+        case 'minio':       return <IconBucket size={16} />
+        default:            return <IconDatabase size={16} />
     }
-    if (type === 'elasticsearch' || type === 'qdrant') {
-        return <IconServer size={16} />
-    }
-    if (type === 'minio' || type === 's3') {
-        return <IconCloud size={16} />
-    }
-    return <IconFolder size={16} />
 }
 
 const CHART_COLORS = [

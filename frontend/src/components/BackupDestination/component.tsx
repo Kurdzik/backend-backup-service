@@ -22,9 +22,9 @@ import {
     IconRefresh,
     IconCheck,
     IconCloudUpload,
-    IconFolder,
-    IconNetwork,
-    IconServer,
+    IconHardDrive,
+    IconShare,
+    IconTerminal2,
     IconBrandAzure,
     IconBrandGoogle,
 } from "@tabler/icons-react"
@@ -846,13 +846,13 @@ export function BackupDestinationsManager() {
                         <Tabs.Tab value="s3" leftSection={<IconCloudUpload size={14} />}>
                             S3 ({getFilteredDestinations("s3").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="smb" leftSection={<IconNetwork size={14} />}>
+                        <Tabs.Tab value="smb" leftSection={<IconShare size={14} />}>
                             SMB ({getFilteredDestinations("smb").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="sftp" leftSection={<IconServer size={14} />}>
+                        <Tabs.Tab value="sftp" leftSection={<IconTerminal2 size={14} />}>
                             SFTP ({getFilteredDestinations("sftp").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="local_fs" leftSection={<IconFolder size={14} />}>
+                        <Tabs.Tab value="local_fs" leftSection={<IconHardDrive size={14} />}>
                             Local FS ({getFilteredDestinations("local_fs").length})
                         </Tabs.Tab>
                         <Tabs.Tab value="azure" leftSection={<IconBrandAzure size={14} />}>

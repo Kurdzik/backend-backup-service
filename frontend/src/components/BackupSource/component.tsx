@@ -21,11 +21,13 @@ import {
     IconRefresh,
     IconCheck,
     IconDatabase,
-    IconSearch,
-    IconLock,
-    IconBox,
-    IconServer,
-    IconCloudUpload
+    IconDatabaseImport,
+    IconBolt,
+    IconVault,
+    IconTargetArrow,
+    IconLeaf,
+    IconBucket,
+    IconBrandWindows,
 } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
@@ -900,25 +902,25 @@ export function BackupSourcesManager() {
                         <Tabs.Tab value="postgres" leftSection={<IconDatabase size={14} />}>
                             PostgreSQL ({getFilteredSources("postgres").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="elasticsearch" leftSection={<IconSearch size={14} />}>
+                        <Tabs.Tab value="elasticsearch" leftSection={<IconBolt size={14} />}>
                             Elasticsearch ({getFilteredSources("elasticsearch").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="vault" leftSection={<IconLock size={14} />}>
+                        <Tabs.Tab value="vault" leftSection={<IconVault size={14} />}>
                             Vault ({getFilteredSources("vault").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="qdrant" leftSection={<IconBox size={14} />}>
+                        <Tabs.Tab value="qdrant" leftSection={<IconTargetArrow size={14} />}>
                             Qdrant ({getFilteredSources("qdrant").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mysql" leftSection={<IconDatabase size={14} />}>
+                        <Tabs.Tab value="mysql" leftSection={<IconDatabaseImport size={14} />}>
                             MySQL ({getFilteredSources("mysql").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mongodb" leftSection={<IconServer size={14} />}>
+                        <Tabs.Tab value="mongodb" leftSection={<IconLeaf size={14} />}>
                             MongoDB ({getFilteredSources("mongodb").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="minio" leftSection={<IconCloudUpload size={14} />}>
+                        <Tabs.Tab value="minio" leftSection={<IconBucket size={14} />}>
                             MinIO ({getFilteredSources("minio").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mssql" leftSection={<IconDatabase size={14} />}>
+                        <Tabs.Tab value="mssql" leftSection={<IconBrandWindows size={14} />}>
                             SQL Server ({getFilteredSources("mssql").length})
                         </Tabs.Tab>
                     </Tabs.List>
