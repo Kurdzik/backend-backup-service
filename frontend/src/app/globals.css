@@ -23,7 +23,7 @@
   --mantine-color-body: var(--lnr-bg);
 }
 
-/* ─── Bright (light) mode ─────────────────────────────────────────── */
+/* ─── Light (light) mode ─────────────────────────────────────────── */
 [data-mantine-color-scheme="light"] {
   --lnr-bg: #f7f7f8;
   --lnr-sidebar: #ffffff;

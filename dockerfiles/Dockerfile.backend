@@ -37,7 +37,7 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-RUN uv sync --locked
+RUN uv sync
 
 RUN uv add \
     elasticsearch${ELASTIC_VERSION:+==${ELASTIC_VERSION}} \

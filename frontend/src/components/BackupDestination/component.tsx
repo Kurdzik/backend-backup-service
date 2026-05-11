@@ -604,8 +604,10 @@ export function BackupDestinationsManager() {
             <Table.Tbody>
                 {destinations.length === 0 ? (
                     <Table.Tr>
-                        <Table.Td colSpan={4} style={{ textAlign: "center", color: "#999" }}>
-                            No destinations configured
+                        <Table.Td colSpan={4}>
+                            <div style={{ textAlign: "center", padding: "32px 0", color: "var(--lnr-text-faint)", fontSize: 13 }}>
+                                No destinations configured
+                            </div>
                         </Table.Td>
                     </Table.Tr>
                 ) : (
@@ -652,22 +654,35 @@ export function BackupDestinationsManager() {
     )
 
     return (
-        <div style={{ padding: 20 }}>
-            <Group mb={20}>
-                <h1>Backup Destinations</h1>
-                <Button 
-                    leftSection={<IconPlus size={16} />}
-                    onClick={openAddModal}
-                >
-                    Add Destination
-                </Button>
-                <ActionIcon 
-                    onClick={fetchDestinations} 
-                    loading={loadingDestinations} 
-                    variant="default"
-                >
-                    <IconRefresh size={16} />
-                </ActionIcon>
+        <div>
+            <Group
+                mb={24}
+                pb={16}
+                style={{ borderBottom: "1px solid var(--lnr-border)" }}
+                justify="space-between"
+                align="center"
+            >
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--lnr-text)" }}>
+                    Backup Destinations
+                </span>
+                <Group gap={8}>
+                    <ActionIcon
+                        onClick={fetchDestinations}
+                        loading={loadingDestinations}
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                    >
+                        <IconRefresh size={14} />
+                    </ActionIcon>
+                    <Button
+                        leftSection={<IconPlus size={14} />}
+                        onClick={openAddModal}
+                        size="xs"
+                    >
+                        Add Destination
+                    </Button>
+                </Group>
             </Group>
 
             {notification && (

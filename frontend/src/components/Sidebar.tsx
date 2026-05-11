@@ -142,7 +142,7 @@ export const SidebarComponent = () => {
           ))}
         </Stack>
         {/* Theme toggle */}
-        <Tooltip label={colorScheme === "dark" ? "Bright mode" : "Black mode"} position="right" offset={8} disabled={!collapsed}>
+        <Tooltip label={colorScheme === "dark" ? "Light mode" : "Black mode"} position="right" offset={8} disabled={!collapsed}>
           <button
             onClick={() => toggleColorScheme()}
             className={classes.navItem}
@@ -156,7 +156,7 @@ export const SidebarComponent = () => {
             </span>
             {!collapsed && (
               <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>
-                {colorScheme === "dark" ? "Bright mode" : "Black mode"}
+                {colorScheme === "dark" ? "Light mode" : "Black mode"}
               </span>
             )}
           </button>

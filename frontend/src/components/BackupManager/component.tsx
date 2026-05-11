@@ -584,8 +584,10 @@ export function BackupFileManager() {
             <Table.Tbody>
                 {backups.length === 0 ? (
                     <Table.Tr>
-                        <Table.Td colSpan={5} style={{ textAlign: "center", color: "#999" }}>
-                            No backups found for this source type
+                        <Table.Td colSpan={5}>
+                            <div style={{ textAlign: "center", padding: "32px 0", color: "var(--lnr-text-faint)", fontSize: 13 }}>
+                                No backups found for this source type
+                            </div>
                         </Table.Td>
                     </Table.Tr>
                 ) : (
@@ -632,31 +634,41 @@ export function BackupFileManager() {
     )
 
     return (
-        <div style={{ padding: 20 }}>
-            <Group mb={20} justify="space-between">
+        <div>
+            <Group
+                mb={24}
+                pb={16}
+                style={{ borderBottom: "1px solid var(--lnr-border)" }}
+                justify="space-between"
+                align="center"
+            >
                 <div>
-                    <h1 style={{ margin: 0 }}>Backup Files</h1>
-                    <Text size="sm" c="dimmed">Total: {backupCount} backups</Text>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--lnr-text)" }}>
+                        Backup Files
+                    </span>
+                    <Text size="xs" c="dimmed">Total: {backupCount} backups</Text>
                 </div>
-                <Group>
+                <Group gap={8}>
+                    <ActionIcon
+                        onClick={fetchBackups}
+                        loading={isLoading}
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                    >
+                        <IconRefresh size={14} />
+                    </ActionIcon>
                     <Button
-                        leftSection={<IconPlus size={16} />}
+                        leftSection={<IconPlus size={14} />}
                         onClick={() => {
                             resetCreateForm()
                             setCreateModalOpened(true)
                         }}
                         disabled={isLoading}
+                        size="xs"
                     >
                         Create Backup
                     </Button>
-                    <ActionIcon 
-                        onClick={fetchBackups} 
-                        loading={isLoading} 
-                        variant="default"
-                        size="lg"
-                    >
-                        <IconRefresh size={16} />
-                    </ActionIcon>
                 </Group>
             </Group>
 
@@ -667,19 +679,18 @@ export function BackupFileManager() {
                 />
             )}
 
-            <Paper p="md" mb="md" withBorder>
-                <Select
-                    label="Select Destination to Browse Backups"
-                    placeholder="Choose a backup destination"
-                    data={destinationOptions}
-                    value={listDestinationId}
-                    onChange={(value) => {
-                        setListDestinationId(value)
-                        setActiveTab(null)
-                    }}
-                    searchable
-                />
-            </Paper>
+            <Select
+                label="Select Destination to Browse Backups"
+                placeholder="Choose a backup destination"
+                data={destinationOptions}
+                value={listDestinationId}
+                onChange={(value) => {
+                    setListDestinationId(value)
+                    setActiveTab(null)
+                }}
+                searchable
+                mb="md"
+            />
 
             {isLoading ? (
                 <Center py={40}>

@@ -163,9 +163,9 @@ export default function RegisterPage() {
         style={{
           width: "100%",
           maxWidth: rem(400),
-          backgroundColor: "var(--mantine-color-neutral-0)",
+          backgroundColor: "var(--lnr-surface)",
           backdropFilter: "blur(12px)",
-          border: "1px solid var(--mantine-color-neutral-2)",
+          border: "1px solid var(--lnr-border)",
         }}
       >
         <Stack gap="lg">
@@ -175,14 +175,14 @@ export default function RegisterPage() {
               <Box
                 style={{
                   padding: rem(12),
-                  borderRadius: 0,
-                  backgroundColor: "var(--mantine-color-slate-1)",
-                  border: "1px solid var(--mantine-color-slate-2)",
+                  borderRadius: 4,
+                  backgroundColor: "var(--lnr-accent-muted)",
+                  border: "1px solid var(--lnr-border)",
                 }}
               >
                 <IconDatabase
                   size={24}
-                  color="var(--mantine-color-slate-6)"
+                  color="var(--lnr-accent)"
                   stroke={2}
                 />
               </Box>
@@ -192,18 +192,18 @@ export default function RegisterPage() {
               size="1.5rem"
               fw={600}
               mb="xs"
-              c="slate.8"
               style={{
                 fontFamily: "var(--mantine-font-family)",
+                color: "var(--lnr-text)",
               }}
             >
               Get Started
             </Title>
             <Text
               size="sm"
-              c="slate.5"
               style={{
                 fontFamily: "var(--mantine-font-family)",
+                color: "var(--lnr-text-muted)",
               }}
             >
               Create your account to get started
@@ -227,7 +227,7 @@ export default function RegisterPage() {
               size="sm"
               minLength={3}
               leftSection={
-                <IconUser size={16} color="var(--mantine-color-slate-5)" />
+                <IconUser size={16} color="var(--lnr-text-faint)" />
               }
               value={formData.username}
               onChange={(event) =>
@@ -237,19 +237,19 @@ export default function RegisterPage() {
               disabled={loading}
               styles={{
                 label: {
-                  color: "var(--mantine-color-slate-7)",
+                  color: "var(--lnr-text-muted)",
                   fontSize: rem(13),
                   fontWeight: 500,
                   marginBottom: rem(6),
                 },
                 input: {
                   fontSize: rem(13),
-                  backgroundColor: "var(--mantine-color-neutral-0)",
-                  border: "1px solid var(--mantine-color-neutral-4)",
-                  borderRadius: 0,
+                  backgroundColor: "var(--lnr-surface)",
+                  border: "1px solid var(--lnr-border-strong)",
+                  borderRadius: 4,
                   "&:focus": {
-                    borderColor: "var(--mantine-color-slate-6)",
-                    boxShadow: "inset 0 0 0 1px var(--mantine-color-slate-6)",
+                    borderColor: "var(--lnr-accent)",
+                    boxShadow: "inset 0 0 0 1px var(--lnr-accent)",
                   },
                 },
               }}
@@ -263,7 +263,7 @@ export default function RegisterPage() {
                 size="sm"
                 minLength={8}
                 leftSection={
-                  <IconLock size={16} color="var(--mantine-color-slate-5)" />
+                  <IconLock size={16} color="var(--lnr-text-faint)" />
                 }
                 value={formData.password}
                 onChange={(event) =>
@@ -273,19 +273,19 @@ export default function RegisterPage() {
                 disabled={loading}
                 styles={{
                   label: {
-                    color: "var(--mantine-color-slate-7)",
+                    color: "var(--lnr-text-muted)",
                     fontSize: rem(13),
                     fontWeight: 500,
                     marginBottom: rem(6),
                   },
                   input: {
                     fontSize: rem(13),
-                    backgroundColor: "var(--mantine-color-neutral-0)",
-                    border: "1px solid var(--mantine-color-neutral-4)",
-                    borderRadius: 0,
+                    backgroundColor: "var(--lnr-surface)",
+                    border: "1px solid var(--lnr-border-strong)",
+                    borderRadius: 4,
                     "&:focus": {
-                      borderColor: "var(--mantine-color-slate-6)",
-                      boxShadow: "inset 0 0 0 1px var(--mantine-color-slate-6)",
+                      borderColor: "var(--lnr-accent)",
+                      boxShadow: "inset 0 0 0 1px var(--lnr-accent)",
                     },
                   },
                 }}
@@ -300,16 +300,16 @@ export default function RegisterPage() {
                       passwordStrength === 1
                         ? "error"
                         : passwordStrength === 2
-                          ? "warning"
-                          : passwordStrength === 3
-                            ? "info"
+                            ? "warning"
+                            : passwordStrength === 3
+                            ? "accent"
                             : "success"
                     }
                     style={{
-                      border: "1px solid var(--mantine-color-neutral-3)",
+                      border: "1px solid var(--lnr-border)",
                     }}
                   />
-                  <Text size="xs" c="slate.6" mt={4}>
+                  <Text size="xs" c="dimmed" mt={4}>
                     {passwordStrength === 1 && "Weak password"}
                     {passwordStrength === 2 && "Fair password"}
                     {passwordStrength === 3 && "Good password"}
@@ -333,7 +333,7 @@ export default function RegisterPage() {
                     color="var(--mantine-color-error-6)"
                   />
                 ) : (
-                  <IconLock size={16} color="var(--mantine-color-slate-5)" />
+                  <IconLock size={16} color="var(--lnr-text-faint)" />
                 )
               }
               value={formData.password2}
@@ -344,22 +344,22 @@ export default function RegisterPage() {
               disabled={loading}
               styles={{
                 label: {
-                  color: "var(--mantine-color-slate-7)",
+                  color: "var(--lnr-text-muted)",
                   fontSize: rem(13),
                   fontWeight: 500,
                   marginBottom: rem(6),
                 },
                 input: {
                   fontSize: rem(13),
-                  backgroundColor: "var(--mantine-color-neutral-0)",
+                  backgroundColor: "var(--lnr-surface)",
                   border:
                     formData.password2 && !passwordsMatch
                       ? "1px solid var(--mantine-color-error-6)"
-                      : "1px solid var(--mantine-color-neutral-4)",
-                  borderRadius: 0,
+                      : "1px solid var(--lnr-border-strong)",
+                  borderRadius: 4,
                   "&:focus": {
-                    borderColor: "var(--mantine-color-slate-6)",
-                    boxShadow: "inset 0 0 0 1px var(--mantine-color-slate-6)",
+                    borderColor: "var(--lnr-accent)",
+                    boxShadow: "inset 0 0 0 1px var(--lnr-accent)",
                   },
                 },
               }}
@@ -373,21 +373,20 @@ export default function RegisterPage() {
               loading={loading}
               disabled={!isFormValid() || loading}
               mt="md"
-              color="slate"
               styles={{
                 root: {
                   height: rem(40),
                   fontSize: rem(13),
                   fontWeight: 500,
-                  borderRadius: 0,
-                  backgroundColor: "var(--mantine-color-slate-6)",
+                  borderRadius: 4,
+                  backgroundColor: "var(--lnr-accent)",
                   transition: "all 100ms cubic-bezier(0.4, 0, 0.2, 1)",
                   "&:hover:not([data-disabled])": {
-                    backgroundColor: "var(--mantine-color-slate-7)",
+                    backgroundColor: "var(--lnr-accent-hover)",
                   },
                   "&[data-disabled]": {
-                    backgroundColor: "var(--mantine-color-slate-3)",
-                    color: "var(--mantine-color-slate-5)",
+                    backgroundColor: "var(--lnr-border-strong)",
+                    color: "var(--lnr-text-faint)",
                   },
                 },
               }}
@@ -397,9 +396,9 @@ export default function RegisterPage() {
           </Stack>
 
           {/* Footer */}
-          <Box pt="md" style={{ borderTop: "1px solid var(--mantine-color-neutral-3)" }}>
+          <Box pt="md" style={{ borderTop: "1px solid var(--lnr-border)" }}>
             <Group justify="center" gap="xs">
-              <Text size="sm" c="slate.6">
+              <Text size="sm" c="dimmed">
                 Already have an account?
               </Text>
               <Button
@@ -412,12 +411,12 @@ export default function RegisterPage() {
                 disabled={loading}
                 styles={{
                   root: {
-                    color: "var(--mantine-color-slate-6)",
+                    color: "var(--lnr-accent)",
                     fontSize: rem(13),
                     fontWeight: 500,
-                    padding: 0,
+                    padding: "0 4px",
                     border: 0,
-                    height: "auto",
+                    height: rem(24),
                   },
                 }}
               >
