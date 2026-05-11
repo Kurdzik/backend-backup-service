@@ -1,15 +1,16 @@
 import logging
+import os
 import sys
 from contextlib import contextmanager
 from datetime import datetime
 from contextvars import ContextVar
-from typing import Optional
+from typing import Any
 
 import structlog
 from sqlmodel import Session
 from src.models import Logs
 
-_tenant_context: ContextVar[Optional[dict]] = ContextVar("tenant_context", default=None)
+_log_context: ContextVar[dict[str, Any]] = ContextVar("log_context", default={})
 
 
 class DatabaseHandler(logging.Handler):
@@ -18,14 +19,16 @@ class DatabaseHandler(logging.Handler):
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
+        db_level_name = os.getenv("LOG_DB_LEVEL", "WARNING").upper()
+        self.setLevel(getattr(logging, db_level_name, logging.WARNING))
 
     def emit(self, record):
         try:
-            context = _tenant_context.get()
-            if not context:
+            context = _log_context.get()
+            tenant_id = context.get("tenant_id")
+            if not tenant_id:
                 return
 
-            tenant_id = context.get("tenant_id")
             service_name = context.get("service_name", "unknown")
 
             log_entry = Logs(
@@ -46,11 +49,11 @@ def configure_logger(engine, service_name: str = "default"):
     """Configure structlog once at application startup."""
 
     def add_context(logger, method_name, event_dict):
-        """Add tenant_id from context to log dict."""
-        context = _tenant_context.get()
+        """Add request and tenant context to log dict."""
+        context = _log_context.get()
         if context:
-            event_dict["tenant_id"] = context.get("tenant_id")
-            event_dict["service_name"] = context.get("service_name", service_name)
+            event_dict.update({k: v for k, v in context.items() if v is not None})
+        event_dict.setdefault("service_name", service_name)
         return event_dict
 
     structlog.configure(
@@ -73,7 +76,7 @@ def configure_logger(engine, service_name: str = "default"):
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
-        level=logging.INFO,
+        level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
     )
 
     logger = logging.getLogger()
@@ -91,15 +94,19 @@ def get_logger(name: str = __name__):
 
 
 @contextmanager
-def tenant_context(tenant_id: str, service_name: str = "default"):
-    """Context manager for setting tenant context.
-
-    Usage:
-        with tenant_context(tenant_id="user-123"):
-            logger.info("user_action")  # tenant_id will be included
-    """
-    token = _tenant_context.set({"tenant_id": tenant_id, "service_name": service_name})
+def log_context(**context: Any):
+    """Temporarily attach structured context fields to log events."""
+    current = _log_context.get().copy()
+    current.update({k: v for k, v in context.items() if v is not None})
+    token = _log_context.set(current)
     try:
         yield
     finally:
-        _tenant_context.reset(token)
+        _log_context.reset(token)
+
+
+@contextmanager
+def tenant_context(tenant_id: str, service_name: str = "default"):
+    """Context manager for setting tenant context."""
+    with log_context(tenant_id=tenant_id, service_name=service_name):
+        yield

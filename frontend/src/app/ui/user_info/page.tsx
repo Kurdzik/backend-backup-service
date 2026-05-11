@@ -2,7 +2,7 @@
 
 
 import { UserManagement } from "@/components/UserManagement/component";
-import { Button, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 
 
 export default function UserInfo() {

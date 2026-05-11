@@ -1,7 +1,6 @@
 "use client";
 
 import { Box, Stack, Text, ScrollArea, Tooltip } from "@mantine/core";
-import { useMantineColorScheme } from "@mantine/core";
 import {
   IconDatabase,
   IconCloud,
@@ -10,8 +9,8 @@ import {
   IconCalendarTime,
   IconUser,
   IconApps,
-  IconSun,
-  IconMoon,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import React from "react";
 import Link from "next/link";
@@ -76,7 +75,6 @@ const SidebarItem = ({ item, active, collapsed, onClick }: SidebarItemProps) => 
 export const SidebarComponent = () => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   React.useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
@@ -110,6 +108,17 @@ export const SidebarComponent = () => {
           <IconAugmentedReality size={12} stroke={2} />
         </Box>
         {!collapsed && <Text className={classes.appTitle}>Backup Manager</Text>}
+        <Tooltip label={collapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" offset={8}>
+          <button
+            onClick={toggleCollapsed}
+            className={classes.headerAction}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed
+              ? <IconChevronRight size={14} stroke={1.8} />
+              : <IconChevronLeft size={14} stroke={1.8} />}
+          </button>
+        </Tooltip>
       </Box>
 
       {/* Main nav */}
@@ -141,39 +150,6 @@ export const SidebarComponent = () => {
             />
           ))}
         </Stack>
-        {/* Theme toggle */}
-        <Tooltip label={colorScheme === "dark" ? "Light mode" : "Black mode"} position="right" offset={8} disabled={!collapsed}>
-          <button
-            onClick={() => toggleColorScheme()}
-            className={classes.navItem}
-            style={{ marginTop: 4, justifyContent: collapsed ? "center" : undefined }}
-            aria-label="Toggle color scheme"
-          >
-            <span className={classes.navItemIcon}>
-              {colorScheme === "dark"
-                ? <IconSun size={16} stroke={1.5} />
-                : <IconMoon size={16} stroke={1.5} />}
-            </span>
-            {!collapsed && (
-              <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>
-                {colorScheme === "dark" ? "Light mode" : "Black mode"}
-              </span>
-            )}
-          </button>
-        </Tooltip>
-
-        {/* Collapse toggle */}
-        <button
-          onClick={toggleCollapsed}
-          className={classes.navItem}
-          style={{ marginTop: 2, justifyContent: collapsed ? "center" : undefined }}
-          aria-label={collapsed ? "Expand" : "Collapse"}
-        >
-          <span className={classes.navItemIcon} style={{ opacity: 0.4, fontSize: 11 }}>
-            {collapsed ? "→" : "←"}
-          </span>
-          {!collapsed && <span className={classes.navItemLabel} style={{ color: "var(--lnr-text-faint)", fontSize: 12 }}>Collapse</span>}
-        </button>
       </Box>
     </Box>
   );

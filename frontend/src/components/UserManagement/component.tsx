@@ -3,7 +3,6 @@ import { post, get } from "@/lib/backendRequests"
 import { useState, useEffect } from "react"
 import { 
     Stack, 
-    Modal, 
     Button, 
     Group, 
     Table, 
@@ -13,13 +12,13 @@ import {
     Text, 
     Paper, 
     Tabs,
-    TextInput,
     PasswordInput,
     Badge,
     Code,
     Select
 } from "@mantine/core"
-import { IconUser, IconList, IconKey, IconRefresh } from "@tabler/icons-react"
+import { useMantineColorScheme } from "@mantine/core"
+import { IconUser, IconList, IconKey, IconRefresh, IconSun, IconMoon } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
 interface UserInfo {
@@ -61,6 +60,17 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
         }
     }
 
+    const getLevelColor = (level?: string) => {
+        if (level === "critical" || level === "error") return "red"
+        if (level === "warning") return "yellow"
+        return "gray"
+    }
+
+    const getLogSummary = (parsedLog: any, rawLog: string) => {
+        if (!parsedLog) return rawLog
+        return parsedLog.error || parsedLog.detail || parsedLog.message || parsedLog.event || "No details"
+    }
+
     // Sort logs from newest to oldest
     const sortedLogs = [...logs].sort((a, b) => {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -99,18 +109,21 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
             <Table striped highlightOnHover>
                 <Table.Thead>
                     <Table.Tr>
-                        <Table.Th>ID</Table.Th>
+                        <Table.Th>Level</Table.Th>
                         <Table.Th>Timestamp</Table.Th>
                         <Table.Th>Service</Table.Th>
                         <Table.Th>Event</Table.Th>
-                        <Table.Th>Details</Table.Th>
+                        <Table.Th>Summary</Table.Th>
+                        <Table.Th>Request</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                     {displayedLogs.length === 0 ? (
                         <Table.Tr>
-                            <Table.Td colSpan={5} style={{ textAlign: "center", color: "#999" }}>
-                                No logs found
+                            <Table.Td colSpan={6}>
+                                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--lnr-text-faint)", fontSize: 13 }}>
+                                    No warning or error logs found
+                                </div>
                             </Table.Td>
                         </Table.Tr>
                     ) : (
@@ -118,7 +131,11 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
                             const parsedLog = parseLogJson(log.log)
                             return (
                                 <Table.Tr key={log.id}>
-                                    <Table.Td>{log.id}</Table.Td>
+                                    <Table.Td>
+                                        <Badge color={getLevelColor(parsedLog?.level)} variant="light" size="sm">
+                                            {parsedLog?.level || "unknown"}
+                                        </Badge>
+                                    </Table.Td>
                                     <Table.Td style={{ fontSize: 12 }}>
                                         {formatTimestamp(log.timestamp)}
                                     </Table.Td>
@@ -131,17 +148,16 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
                                         {parsedLog?.event || "N/A"}
                                     </Table.Td>
                                     <Table.Td>
-                                        <Code 
-                                            block 
-                                            style={{ 
-                                                fontSize: 11, 
-                                                maxWidth: 400, 
-                                                overflow: "auto",
-                                                whiteSpace: "pre-wrap"
-                                            }}
-                                        >
-                                            {JSON.stringify(parsedLog, null, 2)}
-                                        </Code>
+                                        <Text size="sm" lineClamp={3}>
+                                            {getLogSummary(parsedLog, log.log)}
+                                        </Text>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        {parsedLog?.request_id ? (
+                                            <Code>{parsedLog.request_id}</Code>
+                                        ) : (
+                                            <Text size="sm" c="dimmed">-</Text>
+                                        )}
                                     </Table.Td>
                                 </Table.Tr>
                             )
@@ -165,6 +181,7 @@ export function UserManagement() {
     const [oldPassword, setOldPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
     const [newPassword2, setNewPassword2] = useState("")
+    const { colorScheme, toggleColorScheme } = useMantineColorScheme()
 
     useEffect(() => {
         loadUserInfo()
@@ -195,7 +212,7 @@ export function UserManagement() {
         setIsLoading(true)
         setNotification(null)
         try {
-            const response = await get("system/logs")
+            const response = await get("system/logs?min_level=warning&limit=100")
             
             if (response.status >= 400) {
                 setNotification({ message: response.detail || "Failed to load logs", statusCode: response.status })
@@ -306,6 +323,26 @@ export function UserManagement() {
                                     <Group>
                                         <Text fw={600} size="sm" style={{ width: 120 }}>Tenant ID:</Text>
                                         <Code style={{ wordBreak: "break-all" }}>{userInfo.tenant_id}</Code>
+                                    </Group>
+                                    <Group justify="space-between" pt="sm" style={{ borderTop: "1px solid var(--lnr-border)" }}>
+                                        <div>
+                                            <Text fw={600} size="sm">Appearance</Text>
+                                            <Text size="xs" c="dimmed">
+                                                Current mode: {colorScheme === "dark" ? "Black" : "Light"}
+                                            </Text>
+                                        </div>
+                                        <Button
+                                            leftSection={
+                                                colorScheme === "dark"
+                                                    ? <IconSun size={16} stroke={1.5} />
+                                                    : <IconMoon size={16} stroke={1.5} />
+                                            }
+                                            onClick={() => toggleColorScheme()}
+                                            variant="light"
+                                            size="xs"
+                                        >
+                                            {colorScheme === "dark" ? "Light mode" : "Black mode"}
+                                        </Button>
                                     </Group>
                                 </Stack>
                             </Paper>

@@ -21,6 +21,26 @@
   height: 48px;
 }
 
+.headerAction {
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--lnr-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--lnr-transition);
+}
+
+.headerAction:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--lnr-text);
+}
+
 .appIcon {
   width: 20px;
   height: 20px;
@@ -147,6 +167,15 @@
 /* ─── Collapsed state ─────────────────────────────────────────────── */
 .sidebarContainer[data-collapsed] {
   width: 52px;
+}
+
+.sidebarContainer[data-collapsed] .sidebarHeader {
+  padding: 12px 8px;
+  gap: 4px;
+}
+
+.sidebarContainer[data-collapsed] .headerAction {
+  margin-left: 0;
 }
 
 .sidebarContainer[data-collapsed] .appTitle {

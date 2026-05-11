@@ -11,6 +11,7 @@ class ApiResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+    request_id: Optional[str] = None
 
 
 class RegisterUserRequest(BaseModel):
