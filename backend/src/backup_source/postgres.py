@@ -58,6 +58,8 @@ class PostgresBackupManager(BaseBackupManager):
             self.connection_params.get("user", "postgres"),
             "-F",
             "c",  # Custom format for better compression and restoration
+            "--no-owner",
+            "--no-privileges",
             "-v",
             "-f",
             backup_path,
@@ -128,6 +130,8 @@ class PostgresBackupManager(BaseBackupManager):
             target_db,
             "--clean",
             "--if-exists",
+            "--no-owner",
+            "--no-privileges",
             "-v",
             backup_path,
         ]
