@@ -180,7 +180,7 @@ def restore_backup_to_source(
                     "request": request.model_dump(),
                     "user_info": user_info.model_dump(),
                 },
-                ignore_result=False,
+                ignore_result=True,
             )
 
             logger.info(
@@ -193,24 +193,10 @@ def restore_backup_to_source(
                 persist_db=True,
             )
 
-            result = task.get()
-
-            if result:
-                logger.info(
-                    "restore_process_completed_successfully",
-                    backup_source_id=request.backup_source_id,
-                )
-                return ApiResponse(message="Backup restored successfully")
-            else:
-                logger.error(
-                    "restore_process_returned_failure",
-                    backup_source_id=request.backup_source_id,
-                    result=result,
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Source could not be restored from backup",
-                )
+            return ApiResponse(
+                message="Restore is being processed",
+                data={"task_id": task.id},
+            )
 
         except HTTPException:
             raise

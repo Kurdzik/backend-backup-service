@@ -68,7 +68,12 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
 
     const getLogSummary = (parsedLog: any, rawLog: string) => {
         if (!parsedLog) return rawLog
+        if (parsedLog.stage) return parsedLog.stage
         return parsedLog.error || parsedLog.detail || parsedLog.message || parsedLog.event || "No details"
+    }
+
+    const getTraceId = (parsedLog: any) => {
+        return parsedLog?.task_id || parsedLog?.request_id
     }
 
     // Sort logs from newest to oldest
@@ -114,7 +119,7 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
                         <Table.Th>Service</Table.Th>
                         <Table.Th>Event</Table.Th>
                         <Table.Th>Summary</Table.Th>
-                        <Table.Th>Request</Table.Th>
+                        <Table.Th>Trace</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -122,13 +127,14 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
                         <Table.Tr>
                             <Table.Td colSpan={6}>
                                 <div style={{ textAlign: "center", padding: "32px 0", color: "var(--lnr-text-faint)", fontSize: 13 }}>
-                                    No warning or error logs found
+                                    No logs found
                                 </div>
                             </Table.Td>
                         </Table.Tr>
                     ) : (
                         displayedLogs.map((log) => {
                             const parsedLog = parseLogJson(log.log)
+                            const traceId = getTraceId(parsedLog)
                             return (
                                 <Table.Tr key={log.id}>
                                     <Table.Td>
@@ -153,8 +159,8 @@ function LogsTable({ logs, isLoading }: { logs: Log[], isLoading: boolean }) {
                                         </Text>
                                     </Table.Td>
                                     <Table.Td>
-                                        {parsedLog?.request_id ? (
-                                            <Code>{parsedLog.request_id}</Code>
+                                        {traceId ? (
+                                            <Code>{traceId}</Code>
                                         ) : (
                                             <Text size="sm" c="dimmed">-</Text>
                                         )}
@@ -208,9 +214,9 @@ export function UserManagement() {
         }
     }
 
-    const loadLogs = async () => {
-        setIsLoading(true)
-        setNotification(null)
+    const loadLogs = async (showLoader = true) => {
+        if (showLoader) setIsLoading(true)
+        if (showLoader) setNotification(null)
         try {
             const response = await get("system/logs?min_level=info&limit=100")
             
@@ -223,13 +229,23 @@ export function UserManagement() {
             const logsList = response?.data?.logs || []
             setLogs(logsList)
         } catch (err) {
-            setNotification({ message: "Failed to load logs", statusCode: 500 })
+            if (showLoader) setNotification({ message: "Failed to load logs", statusCode: 500 })
             setLogs([])
             console.error("Error loading logs:", err)
         } finally {
-            setIsLoading(false)
+            if (showLoader) setIsLoading(false)
         }
     }
+
+    useEffect(() => {
+        if (activeTab !== "logs") return
+
+        const intervalId = window.setInterval(() => {
+            loadLogs(false)
+        }, 3000)
+
+        return () => window.clearInterval(intervalId)
+    }, [activeTab])
 
     const handleTabChange = (value: string | null) => {
         setActiveTab(value)
@@ -406,7 +422,7 @@ export function UserManagement() {
                     <Group mb="md">
                         <Button
                             leftSection={<IconRefresh size={16} />}
-                            onClick={loadLogs}
+                            onClick={() => loadLogs()}
                             loading={isLoading}
                             variant="light"
                         >

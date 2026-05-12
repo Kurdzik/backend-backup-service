@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from celery import Celery
+from celery import Celery, current_task
 from sqlalchemy import create_engine
 from sqlmodel import Session, and_, select
 from src import configure_logger, get_logger, log_context, tenant_context
@@ -24,6 +24,7 @@ app.conf.update(
     # Task settings
     task_track_started=True,
     task_time_limit=3600,
+    worker_hijack_root_logger=False,
     # Scheduler conf
     beat_scheduler="src.services.scheduler:DynamicScheduler",
 )
@@ -43,6 +44,11 @@ def _log_backup_stage(stage: str, **kwargs) -> None:
 
 def _log_restore_stage(stage: str, **kwargs) -> None:
     logger.info("restore_stage", stage=stage, persist_db=True, **kwargs)
+
+
+def _current_task_id() -> Optional[str]:
+    task = current_task
+    return task.request.id if task and task.request else None
 
 
 def _mark_schedule_last_run(schedule_id: Optional[int], tenant_id: str) -> None:
@@ -129,6 +135,7 @@ def create_backup(
         backup_destination_id=backup_destination_id,
         schedule_id=schedule_id,
         trigger_type=trigger_type,
+        task_id=_current_task_id(),
     ):
         _log_backup_stage("started")
 
@@ -339,6 +346,7 @@ def restore_from_backup(request: RestoreBackupRequest, user_info: UserInfo):
         backup_destination_id=request.backup_destination_id,
         backup_path=request.backup_path,
         trigger_type="manual",
+        task_id=_current_task_id(),
     ):
         _log_restore_stage("started")
 

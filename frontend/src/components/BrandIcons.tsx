@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import { IconDatabase } from "@tabler/icons-react"
+import { IconDatabase, IconFolder } from "@tabler/icons-react"
 
 interface IconProps {
     size?: number
@@ -60,11 +60,56 @@ const PRODUCT_ICONS: Record<string, ProductIconDefinition> = {
     },
 }
 
+const DESTINATION_ICONS: Record<string, ProductIconDefinition> = {
+    s3: {
+        title: "Amazon S3",
+        color: "#569a31",
+        path: "M12 2C7.58 2 4 3.34 4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5c0-1.66-3.58-3-8-3Zm0 2c3.85 0 6 1.03 6 1.5S15.85 7 12 7 6 5.97 6 5.5 8.15 4 12 4Zm6 4.2V11c0 .47-2.15 1.5-6 1.5S6 11.47 6 11V8.2C7.44 8.72 9.54 9 12 9s4.56-.28 6-.8Zm0 5.5V19c0 .47-2.15 1.5-6 1.5S6 19.47 6 19v-5.3c1.44.52 3.54.8 6 .8s4.56-.28 6-.8Z",
+    },
+    smb: {
+        title: "SMB",
+        color: "#00a4ef",
+        path: "M1 3.4 10.8 2v9.3H1V3.4Zm11.1-1.6L23 0v11.3H12.1V1.8ZM1 12.7h9.8V22L1 20.6v-7.9Zm11.1 0H23V24l-10.9-1.6v-9.7Z",
+    },
+    sftp: {
+        title: "SFTP",
+        color: "#0ea5e9",
+        path: "M12 1.5 4 4.7v6.1c0 5 3.35 9.7 8 11.7 4.65-2 8-6.7 8-11.7V4.7l-8-3.2Zm0 2.16 6 2.4v4.74c0 3.83-2.43 7.54-6 9.5-3.57-1.96-6-5.67-6-9.5V6.06l6-2.4ZM9.5 10V8.8a2.5 2.5 0 0 1 5 0V10H16v6H8v-6h1.5Zm2 0h1V8.8a.5.5 0 0 0-1 0V10Z",
+    },
+    local_fs: {
+        title: "Local filesystem",
+        color: "#f59e0b",
+        path: "M2 6.5A2.5 2.5 0 0 1 4.5 4H9l2 2h8.5A2.5 2.5 0 0 1 22 8.5v9A2.5 2.5 0 0 1 19.5 20h-15A2.5 2.5 0 0 1 2 17.5v-11Zm2.5-.5a.5.5 0 0 0-.5.5V8h16a.5.5 0 0 0-.5-.5H10.17l-2-2H4.5ZM4 10v7.5a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5V10H4Z",
+    },
+}
+
 export function ProductIcon({ type, size = 16, className, style }: ProductIconProps) {
     const icon = PRODUCT_ICONS[type.toLowerCase()]
 
     if (!icon) {
         return <IconDatabase size={size} className={className} style={style} />
+    }
+
+    return (
+        <svg
+            role="img"
+            aria-label={icon.title}
+            viewBox="0 0 24 24"
+            width={size}
+            height={size}
+            className={className}
+            style={{ color: icon.color, display: "block", flexShrink: 0, ...style }}
+        >
+            <path fill="currentColor" d={icon.path} />
+        </svg>
+    )
+}
+
+export function DestinationIcon({ type, size = 16, className, style }: ProductIconProps) {
+    const icon = DESTINATION_ICONS[type.toLowerCase()]
+
+    if (!icon) {
+        return <IconFolder size={size} className={className} style={style} />
     }
 
     return (

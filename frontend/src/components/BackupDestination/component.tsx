@@ -6,7 +6,6 @@ import {
     Stack,
     Modal,
     TextInput,
-    NumberInput,
     Button,
     Group,
     Table,
@@ -19,15 +18,19 @@ import {
     IconTrash,
     IconPlus,
     IconRefresh,
-    IconCheck,
-    IconCloudUpload,
-    IconFolder,
-    IconNetwork,
-    IconServer
+    IconCheck
 } from "@tabler/icons-react"
+import { DestinationIcon } from "@/components/BrandIcons"
 import { DisplayNotification } from "../Notifications/component"
 
 const DESTINATION_TYPES = ["s3", "smb", "sftp", "local_fs"]
+const DESTINATION_LABELS: Record<string, string> = {
+    s3: "Amazon S3",
+    smb: "SMB",
+    sftp: "SFTP",
+    local_fs: "Local FS"
+}
+const DESTINATION_OPTIONS = DESTINATION_TYPES.map((type) => ({ value: type, label: DESTINATION_LABELS[type] }))
 const LOCAL_FS_ROOT = "/mnt/backups"
 
 interface Credentials {
@@ -613,7 +616,12 @@ export function BackupDestinationsManager() {
                 ) : (
                     destinations.map((destination) => (
                         <Table.Tr key={destination.id}>
-                            <Table.Td>{destination.name}</Table.Td>
+                            <Table.Td>
+                                <Group gap={8} wrap="nowrap">
+                                    <DestinationIcon type={destination.destination_type} size={16} />
+                                    <span>{destination.name}</span>
+                                </Group>
+                            </Table.Td>
                             <Table.Td style={{ fontSize: 12 }}>{destination.url}</Table.Td>
                             <Table.Td style={{ fontSize: 12 }}>
                                 {new Date(destination.created_at).toLocaleDateString()}
@@ -697,16 +705,16 @@ export function BackupDestinationsManager() {
             ) : (
                 <Tabs value={activeTab} onChange={setActiveTab}>
                     <Tabs.List>
-                        <Tabs.Tab value="s3" leftSection={<IconCloudUpload size={14} />}>
+                        <Tabs.Tab value="s3" leftSection={<DestinationIcon type="s3" size={14} />}>
                             S3 ({getFilteredDestinations("s3").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="smb" leftSection={<IconNetwork size={14} />}>
+                        <Tabs.Tab value="smb" leftSection={<DestinationIcon type="smb" size={14} />}>
                             SMB ({getFilteredDestinations("smb").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="sftp" leftSection={<IconServer size={14} />}>
+                        <Tabs.Tab value="sftp" leftSection={<DestinationIcon type="sftp" size={14} />}>
                             SFTP ({getFilteredDestinations("sftp").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="local_fs" leftSection={<IconFolder size={14} />}>
+                        <Tabs.Tab value="local_fs" leftSection={<DestinationIcon type="local_fs" size={14} />}>
                             Local FS ({getFilteredDestinations("local_fs").length})
                         </Tabs.Tab>
                     </Tabs.List>
@@ -739,10 +747,17 @@ export function BackupDestinationsManager() {
                 <Stack>
                     {!editingId && (
                         <Select
-                            data={DESTINATION_TYPES}
+                            data={DESTINATION_OPTIONS}
                             searchable
                             value={destinationType}
                             label="Destination Type"
+                            leftSection={<DestinationIcon type={destinationType} size={16} />}
+                            renderOption={({ option }) => (
+                                <Group gap={8} wrap="nowrap">
+                                    <DestinationIcon type={option.value} size={16} />
+                                    <span>{option.label}</span>
+                                </Group>
+                            )}
                             onChange={(value) => setDestinationType(value || "s3")}
                             required
                         />
