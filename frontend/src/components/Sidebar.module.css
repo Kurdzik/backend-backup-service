@@ -44,12 +44,9 @@
 .appIcon {
   width: 20px;
   height: 20px;
-  background: var(--lnr-accent-muted);
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--lnr-accent);
   flex-shrink: 0;
 }
 

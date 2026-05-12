@@ -5,7 +5,6 @@ import {
   IconDatabase,
   IconCloud,
   IconLogout,
-  IconAugmentedReality,
   IconCalendarTime,
   IconUser,
   IconApps,
@@ -16,6 +15,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import classes from "@/components/Sidebar.module.css";
+import { AppMark } from "@/components/BrandIcons";
 import { removeAuthCookie } from "@/lib/cookies";
 
 interface NavItem {
@@ -105,7 +105,7 @@ export const SidebarComponent = () => {
       {/* Header */}
       <Box className={classes.sidebarHeader}>
         <Box className={classes.appIcon}>
-          <IconAugmentedReality size={12} stroke={2} />
+          <AppMark size={20} />
         </Box>
         {!collapsed && <Text className={classes.appTitle}>Backup Manager</Text>}
         <Tooltip label={collapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" offset={8}>

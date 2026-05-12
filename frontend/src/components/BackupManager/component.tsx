@@ -21,12 +21,9 @@ import {
     IconTrash,
     IconPlus,
     IconRefresh,
-    IconRestore,
-    IconDatabase,
-    IconServer,
-    IconFolder,
-    IconCloud
+    IconRestore
 } from "@tabler/icons-react"
+import { ProductIcon } from "@/components/BrandIcons"
 import { DisplayNotification } from "../Notifications/component"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
@@ -58,19 +55,7 @@ interface NotificationState {
     statusCode: number
 }
 
-const getSourceIcon = (sourceType: string) => {
-    const type = sourceType.toLowerCase()
-    if (type === 'postgres' || type === 'mysql' || type === 'mongodb' || type === 'neo4j') {
-        return <IconDatabase size={16} />
-    }
-    if (type === 'elasticsearch' || type === 'qdrant') {
-        return <IconServer size={16} />
-    }
-    if (type === 'minio' || type === 's3') {
-        return <IconCloud size={16} />
-    }
-    return <IconFolder size={16} />
-}
+const getSourceIcon = (sourceType: string) => <ProductIcon type={sourceType} size={16} />
 
 const CHART_COLORS = [
     '#2563eb', // blue

@@ -19,17 +19,23 @@ import {
     IconTrash,
     IconPlus,
     IconRefresh,
-    IconCheck,
-    IconDatabase,
-    IconSearch,
-    IconLock,
-    IconBox,
-    IconServer,
-    IconCloudUpload
+    IconCheck
 } from "@tabler/icons-react"
+import { ProductIcon } from "@/components/BrandIcons"
 import { DisplayNotification } from "../Notifications/component"
 
 const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant", "mysql", "mongodb", "minio", "neo4j"]
+const SOURCE_LABELS: Record<string, string> = {
+    postgres: "PostgreSQL",
+    elasticsearch: "Elasticsearch",
+    vault: "Vault",
+    qdrant: "Qdrant",
+    mysql: "MySQL",
+    mongodb: "MongoDB",
+    minio: "MinIO",
+    neo4j: "Neo4j"
+}
+const SOURCE_OPTIONS = SOURCE_TYPES.map((type) => ({ value: type, label: SOURCE_LABELS[type] }))
 
 interface Credentials {
     url: string
@@ -831,7 +837,12 @@ export function BackupSourcesManager() {
                 ) : (
                     sources.map((source) => (
                         <Table.Tr key={source.id}>
-                            <Table.Td>{source.name}</Table.Td>
+                            <Table.Td>
+                                <Group gap={8} wrap="nowrap">
+                                    <ProductIcon type={source.source_type} size={16} />
+                                    <span>{source.name}</span>
+                                </Group>
+                            </Table.Td>
                             <Table.Td style={{ fontSize: 12 }}>{source.url}</Table.Td>
                             <Table.Td style={{ fontSize: 12 }}>
                                 {new Date(source.created_at).toLocaleDateString()}
@@ -915,28 +926,28 @@ export function BackupSourcesManager() {
             ) : (
                 <Tabs value={activeTab} onChange={setActiveTab}>
                     <Tabs.List>
-                        <Tabs.Tab value="postgres" leftSection={<IconDatabase size={14} />}>
+                        <Tabs.Tab value="postgres" leftSection={<ProductIcon type="postgres" size={14} />}>
                             PostgreSQL ({getFilteredSources("postgres").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="elasticsearch" leftSection={<IconSearch size={14} />}>
+                        <Tabs.Tab value="elasticsearch" leftSection={<ProductIcon type="elasticsearch" size={14} />}>
                             Elasticsearch ({getFilteredSources("elasticsearch").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="vault" leftSection={<IconLock size={14} />}>
+                        <Tabs.Tab value="vault" leftSection={<ProductIcon type="vault" size={14} />}>
                             Vault ({getFilteredSources("vault").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="qdrant" leftSection={<IconBox size={14} />}>
+                        <Tabs.Tab value="qdrant" leftSection={<ProductIcon type="qdrant" size={14} />}>
                             Qdrant ({getFilteredSources("qdrant").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mysql" leftSection={<IconDatabase size={14} />}>
+                        <Tabs.Tab value="mysql" leftSection={<ProductIcon type="mysql" size={14} />}>
                             MySQL ({getFilteredSources("mysql").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="mongodb" leftSection={<IconServer size={14} />}>
+                        <Tabs.Tab value="mongodb" leftSection={<ProductIcon type="mongodb" size={14} />}>
                             MongoDB ({getFilteredSources("mongodb").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="minio" leftSection={<IconCloudUpload size={14} />}>
+                        <Tabs.Tab value="minio" leftSection={<ProductIcon type="minio" size={14} />}>
                             MinIO ({getFilteredSources("minio").length})
                         </Tabs.Tab>
-                        <Tabs.Tab value="neo4j" leftSection={<IconDatabase size={14} />}>
+                        <Tabs.Tab value="neo4j" leftSection={<ProductIcon type="neo4j" size={14} />}>
                             Neo4j ({getFilteredSources("neo4j").length})
                         </Tabs.Tab>
                     </Tabs.List>
@@ -981,10 +992,17 @@ export function BackupSourcesManager() {
                 <Stack>
                     {!editingId && (
                         <Select
-                            data={SOURCE_TYPES}
+                            data={SOURCE_OPTIONS}
                             searchable
                             value={sourceType}
                             label="Source Type"
+                            leftSection={<ProductIcon type={sourceType} size={16} />}
+                            renderOption={({ option }) => (
+                                <Group gap={8} wrap="nowrap">
+                                    <ProductIcon type={option.value} size={16} />
+                                    <span>{option.label}</span>
+                                </Group>
+                            )}
                             onChange={(value) => setSourceType(value || "postgres")}
                             required
                         />

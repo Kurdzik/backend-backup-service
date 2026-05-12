@@ -1,0 +1,21 @@
+{
+  "name": "Backup Manager",
+  "short_name": "Backups",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#0d0d10",
+  "background_color": "#0d0d10",
+  "display": "standalone"
+}

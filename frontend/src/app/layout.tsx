@@ -19,8 +19,13 @@ const inter = Inter({
 export default function RootLayout({ children }: { children: any }) {
   return (
     <html lang="en" className={inter.className}>
-      <title>Backup Manager</title>
       <head>
+        <title>Backup Manager</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <meta name="theme-color" content="#0d0d10" />
         <ColorSchemeScript defaultColorScheme="dark" />
 
         <meta
