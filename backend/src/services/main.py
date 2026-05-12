@@ -129,7 +129,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @api_router.get("/system/logs", response_model=ApiResponse)
 def get_system_logs(
     limit: int = Query(default=100, ge=1, le=500),
-    min_level: str = Query(default="warning", pattern="^(debug|info|warning|error|critical)$"),
+    min_level: str = Query(default="info", pattern="^(debug|info|warning|error|critical)$"),
     db_session: sqlmodel.Session = Depends(get_db_session),
     user_info: UserInfo = Depends(get_user_info),
 ):

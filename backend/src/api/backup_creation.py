@@ -40,6 +40,7 @@ def create_backup_from_source(
                     "backup_source_id": backup_source_id,
                     "backup_destination_id": backup_destination_id,
                     "tenant_id": user_info.tenant_id,
+                    "triggered_by": "manual",
                 },
                 ignore_result=True,
             )
@@ -48,6 +49,9 @@ def create_backup_from_source(
                 "create_backup_task_queued",
                 task_id=task.id,
                 backup_source_id=backup_source_id,
+                backup_destination_id=backup_destination_id,
+                trigger_type="manual",
+                persist_db=True,
             )
 
             return ApiResponse(message="Backup is being created")
@@ -179,7 +183,15 @@ def restore_backup_to_source(
                 ignore_result=False,
             )
 
-            logger.info("restore_task_queued", task_id=task.id)
+            logger.info(
+                "restore_task_queued",
+                task_id=task.id,
+                backup_source_id=request.backup_source_id,
+                backup_destination_id=request.backup_destination_id,
+                backup_path=request.backup_path,
+                trigger_type="manual",
+                persist_db=True,
+            )
 
             result = task.get()
 

@@ -60,7 +60,7 @@ interface NotificationState {
 
 const getSourceIcon = (sourceType: string) => {
     const type = sourceType.toLowerCase()
-    if (type === 'postgres' || type === 'mysql' || type === 'mongodb') {
+    if (type === 'postgres' || type === 'mysql' || type === 'mongodb' || type === 'neo4j') {
         return <IconDatabase size={16} />
     }
     if (type === 'elasticsearch' || type === 'qdrant') {

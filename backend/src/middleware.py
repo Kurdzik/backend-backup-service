@@ -1,4 +1,3 @@
-import logging
 import os
 import uuid
 
@@ -12,15 +11,18 @@ from starlette.requests import Request
 from fastapi.security.api_key import APIKeyHeader
 from src.models import Session as UserSession
 from src.models import User
-from src.logger import log_context
+from src.logger import get_logger, log_context
 
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 engine = create_engine(DATABASE_URL)
-session = Session(engine)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 session_token_header = APIKeyHeader(name="X-Session-Token", auto_error=False)
+
+
+def session() -> Session:
+    return Session(engine)
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
@@ -40,12 +42,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
 
 class SQLAlchemySessionMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: FastAPI, db_session_factory: Session):
+    def __init__(self, app: FastAPI, db_session_factory):
         super().__init__(app)
-        self.db_session_factory: Session = db_session_factory
+        self.db_session_factory = db_session_factory
 
     async def dispatch(self, request: Request, call_next):
-        request.state.db = self.db_session_factory
+        request.state.db = self.db_session_factory()
         try:
             response = await call_next(request)
             request.state.db.commit()
@@ -89,7 +91,6 @@ def check_token(request: Request, token: str = Security(session_token_header)):
 
         request.state.user_id = user_session.user_id
         request.state.tenant_id = user.tenant_id
-        request.state.db.commit()
 
     except Exception as e:
         logger.warning("auth_failed", error=str(e), exc_info=True)

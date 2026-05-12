@@ -2,6 +2,7 @@ from src.backup_source.elasticsearch import ElasticsearchBackupManager
 from src.backup_source.minio import MinIOBackupManager
 from src.backup_source.mongodb import MongoDBBackupManager
 from src.backup_source.mysql import MySQLBackupManager
+from src.backup_source.neo4j import Neo4jBackupManager
 from src.backup_source.postgres import PostgresBackupManager
 from src.backup_source.qdrant import QdrantBackupManager
 from src.backup_source.vault import VaultBackupManager
@@ -21,6 +22,7 @@ class BackupManager:
             "mysql": MySQLBackupManager,
             "mongodb": MongoDBBackupManager,
             "minio": MinIOBackupManager,
+            "neo4j": Neo4jBackupManager,
         }
 
         return map_[source_type](self.credentials)
