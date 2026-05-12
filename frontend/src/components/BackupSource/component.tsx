@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react"
 import { DisplayNotification } from "../Notifications/component"
 
-const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant", "mysql", "mongodb", "minio"]
+const SOURCE_TYPES = ["postgres", "elasticsearch", "vault", "qdrant", "mysql", "mongodb", "minio", "neo4j"]
 
 interface Credentials {
     url: string
@@ -408,6 +408,60 @@ function ExportMongoDBCredentials({ onCredentialsChange, initialValues }: Creden
     )
 }
 
+function ExportNeo4jCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
+    const [host, setHost] = useState("")
+    const [port, setPort] = useState<number | undefined>(7687)
+    const [database, setDatabase] = useState("")
+    const [username, setUsername] = useState("")
+    const [password, setPassword] = useState("")
+
+    useEffect(() => {
+        if (!initialValues) {
+            setHost("")
+            setPort(7687)
+            setDatabase("")
+            setUsername("")
+            setPassword("")
+            return
+        }
+
+        const match = initialValues.url?.match(/^(?:neo4j|bolt)(?:\+s|\+ssc)?:\/\/([^/:]+):(\d+)(?:\/(.+))?$/)
+        if (match) {
+            setHost(match[1])
+            setPort(parseInt(match[2]))
+            setDatabase(match[3] || "")
+        } else {
+            const { host, port } = splitHostPort(initialValues.url)
+            setHost(host)
+            setPort(port)
+            setDatabase("")
+        }
+
+        setUsername(initialValues.login || "")
+        setPassword("")
+    }, [initialValues])
+
+    useEffect(() => {
+        const baseUrl = host && port ? `bolt://${host}:${port}` : ""
+        onCredentialsChange({
+            url: baseUrl && database ? `${baseUrl}/${database}` : baseUrl,
+            login: username || null,
+            password: password || null,
+            apiKey: null
+        })
+    }, [host, port, database, username, password, onCredentialsChange])
+
+    return (
+        <Stack>
+            <TextInput label="Host" value={host} onChange={(e) => setHost(e.currentTarget.value)} required />
+            <NumberInput label="Bolt Port" value={port} onChange={(v) => setPort(typeof v === "number" ? v : undefined)} required />
+            <TextInput label="Database (optional)" value={database} onChange={(e) => setDatabase(e.currentTarget.value)} placeholder="neo4j" />
+            <TextInput label="Username" value={username} onChange={(e) => setUsername(e.currentTarget.value)} required />
+            <TextInput type="password" label="Password" value={password} onChange={(e) => setPassword(e.currentTarget.value)} placeholder={initialValues ? "Leave blank to keep existing" : ""} required={!initialValues} />
+        </Stack>
+    )
+}
+
 function ExportMinIOCredentials({ onCredentialsChange, initialValues }: CredentialComponentProps) {
     const [endpoint, setEndpoint] = useState("")
     const [accessKey, setAccessKey] = useState("")
@@ -513,6 +567,8 @@ export function BackupSourcesManager() {
                 return <ExportMongoDBCredentials {...props} />
             case "minio":
                 return <ExportMinIOCredentials {...props} />
+            case "neo4j":
+                return <ExportNeo4jCredentials {...props} />
             default:
                 return null
         }
@@ -740,6 +796,7 @@ export function BackupSourcesManager() {
             case "vault":
                 return !!(editingId || credentials.apiKey)
             case "mysql":
+            case "neo4j":
                 return !!(credentials.login && (editingId || credentials.password))
             case "minio":
                 return !!(credentials.login && (editingId || credentials.password))
@@ -879,6 +936,9 @@ export function BackupSourcesManager() {
                         <Tabs.Tab value="minio" leftSection={<IconCloudUpload size={14} />}>
                             MinIO ({getFilteredSources("minio").length})
                         </Tabs.Tab>
+                        <Tabs.Tab value="neo4j" leftSection={<IconDatabase size={14} />}>
+                            Neo4j ({getFilteredSources("neo4j").length})
+                        </Tabs.Tab>
                     </Tabs.List>
 
                     <Tabs.Panel value="postgres" pt="md">
@@ -901,6 +961,9 @@ export function BackupSourcesManager() {
                     </Tabs.Panel>
                     <Tabs.Panel value="minio" pt="md">
                         <SourceTable sources={getFilteredSources("minio")} />
+                    </Tabs.Panel>
+                    <Tabs.Panel value="neo4j" pt="md">
+                        <SourceTable sources={getFilteredSources("neo4j")} />
                     </Tabs.Panel>
                 </Tabs>
             )}

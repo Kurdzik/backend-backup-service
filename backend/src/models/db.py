@@ -39,7 +39,7 @@ class Source(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tenant_id: str = Field(index=True)
     name: str = Field(index=True)
-    source_type: str  # postgres, qdrant, vault, elasticsearch
+    source_type: str  # postgres, qdrant, vault, elasticsearch, mysql, mongodb, minio, neo4j
     url: str
     login: Optional[str] = None
     password: Optional[str] = None

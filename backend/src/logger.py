@@ -1,4 +1,5 @@
 import logging
+import json
 import os
 import sys
 from contextlib import contextmanager
@@ -20,7 +21,17 @@ class DatabaseHandler(logging.Handler):
         super().__init__()
         self.engine = engine
         db_level_name = os.getenv("LOG_DB_LEVEL", "WARNING").upper()
-        self.setLevel(getattr(logging, db_level_name, logging.WARNING))
+        self.db_level = getattr(logging, db_level_name, logging.WARNING)
+        self.setLevel(logging.INFO)
+
+    def _should_persist(self, record, formatted_message: str) -> bool:
+        if record.levelno >= self.db_level:
+            return True
+
+        try:
+            return bool(json.loads(formatted_message).get("persist_db"))
+        except (json.JSONDecodeError, TypeError):
+            return False
 
     def emit(self, record):
         try:
@@ -30,11 +41,14 @@ class DatabaseHandler(logging.Handler):
                 return
 
             service_name = context.get("service_name", "unknown")
+            formatted_message = self.format(record)
+            if not self._should_persist(record, formatted_message):
+                return
 
             log_entry = Logs(
                 tenant_id=tenant_id,
                 service_name=service_name,
-                log=self.format(record),
+                log=formatted_message,
                 timestamp=datetime.now(),
             )
             with Session(self.engine) as session:

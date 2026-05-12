@@ -32,14 +32,6 @@ class ResetPasswordRequest(BaseModel):
     new_password2: str
 
 
-class CreateScheduleBackupRequest(BaseModel):
-    schedule_name: str
-    backup_source_id: int
-    backup_destination_id: int
-    backup_schedule: str
-    keep_n: int
-
-
 class RestoreBackupRequest(BaseModel):
     backup_source_id: int
     backup_destination_id: int
@@ -47,7 +39,16 @@ class RestoreBackupRequest(BaseModel):
 
 
 class AddBackupSourceRequest(BaseModel):
-    source_type: Literal["vault", "qdrant", "postgres", "elasticsearch", "mysql", "mongodb", "minio"]
+    source_type: Literal[
+        "vault",
+        "qdrant",
+        "postgres",
+        "elasticsearch",
+        "mysql",
+        "mongodb",
+        "minio",
+        "neo4j",
+    ]
     source_name: Optional[str] = None
     credentials: Credentials
 

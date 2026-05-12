@@ -212,7 +212,7 @@ export function UserManagement() {
         setIsLoading(true)
         setNotification(null)
         try {
-            const response = await get("system/logs?min_level=warning&limit=100")
+            const response = await get("system/logs?min_level=info&limit=100")
             
             if (response.status >= 400) {
                 setNotification({ message: response.detail || "Failed to load logs", statusCode: response.status })
