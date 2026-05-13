@@ -15,7 +15,8 @@ import {
     Center,
     Text,
     Paper,
-    Tabs
+    Tabs,
+    Textarea
 } from "@mantine/core"
 import {
     IconTrash,
@@ -202,6 +203,7 @@ export function BackupFileManager() {
     const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null)
     const [backupToDelete, setBackupToDelete] = useState<Backup | null>(null)
     const [restoreToSourceId, setRestoreToSourceId] = useState<string | null>(null)
+    const [restorePrivateKey, setRestorePrivateKey] = useState("")
     
     // Data states
     const [sources, setSources] = useState<BackupSource[]>([])
@@ -380,6 +382,7 @@ export function BackupFileManager() {
         setSelectedBackup(null)
         setRestoreToSourceId(null)
         setSelectedDestinationId(null)
+        setRestorePrivateKey("")
     }, [])
 
     // Handle create backup
@@ -437,13 +440,23 @@ export function BackupFileManager() {
             return
         }
 
+        const encryptedBackup = selectedBackup.name.endsWith(".enc")
+        if (encryptedBackup && !restorePrivateKey.trim()) {
+            setNotification({ 
+                message: "Private key is required to restore encrypted backups", 
+                statusCode: 400 
+            })
+            return
+        }
+
         setLoading(true)
         setNotification(null)
         try {
             const payload = {
                 backup_source_id: parseInt(restoreToSourceId),
                 backup_destination_id: parseInt(selectedDestinationId),
-                backup_path: selectedBackup.path
+                backup_path: selectedBackup.path,
+                private_key: restorePrivateKey.trim() || null
             }
 
             console.log("Restoring backup with payload:", JSON.stringify(payload, null, 2))
@@ -825,10 +838,23 @@ export function BackupFileManager() {
                         required
                     />
 
+                    {selectedBackup?.name.endsWith(".enc") && (
+                        <Textarea
+                            label="Private key"
+                            description="Paste the private key downloaded when encryption was enabled. It is used only for this restore request."
+                            placeholder="-----BEGIN PRIVATE KEY-----"
+                            value={restorePrivateKey}
+                            onChange={(event) => setRestorePrivateKey(event.currentTarget.value)}
+                            minRows={8}
+                            autosize
+                            required
+                        />
+                    )}
+
                     <Group mt={20}>
                         <Button
                             onClick={handleRestoreBackup}
-                            disabled={!restoreToSourceId || !selectedDestinationId || !selectedBackup}
+                            disabled={!restoreToSourceId || !selectedDestinationId || !selectedBackup || (selectedBackup.name.endsWith(".enc") && !restorePrivateKey.trim())}
                             loading={loading}
                             color="orange"
                         >

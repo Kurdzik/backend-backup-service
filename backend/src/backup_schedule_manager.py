@@ -14,20 +14,24 @@ schedules_queue = Queue(
 )
 
 
+def notify_scheduler_reload() -> None:
+    """Send message to Celery Beat to reload schedules."""
+    with Connection(os.environ["CELERY_BROKER_URL"]) as conn:
+        with conn.Producer() as producer:
+            producer.publish(
+                {},
+                exchange=schedules_exchange,
+                routing_key="schedules",
+                declare=[schedules_exchange, schedules_queue],
+            )
+
+
 class ScheduleManager:
     def __init__(self, session: Session) -> None:
         self.session = session
 
     def _notify_scheduler_reload(self) -> None:
-        """Send message to Celery Beat to reload schedules"""
-        with Connection(os.environ["CELERY_BROKER_URL"]) as conn:
-            with conn.Producer() as producer:
-                producer.publish(
-                    {},
-                    exchange=schedules_exchange,
-                    routing_key="schedules",
-                    declare=[schedules_exchange, schedules_queue],
-                )
+        notify_scheduler_reload()
 
     def create_schedule(
         self,

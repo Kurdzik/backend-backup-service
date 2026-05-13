@@ -15,7 +15,11 @@ import {
     PasswordInput,
     Badge,
     Code,
-    Select
+    Select,
+    NumberInput,
+    TextInput,
+    Switch,
+    Divider
 } from "@mantine/core"
 import { useMantineColorScheme } from "@mantine/core"
 import { IconUser, IconList, IconKey, IconRefresh, IconSun, IconMoon } from "@tabler/icons-react"
@@ -25,6 +29,19 @@ interface UserInfo {
     tenant_id: string
     user_id: number
     username: string
+    settings: UserSettings
+}
+
+interface UserSettings {
+    log_retention_period_d: number
+    log_size: number
+    compression_enabled: boolean
+    encryption_enabled: boolean
+    encryption_key_configured: boolean
+    key_fingerprint?: string | null
+    gotify_enabled: boolean
+    gotify_url?: string | null
+    gotify_token_configured: boolean
 }
 
 interface Log {
@@ -182,6 +199,18 @@ export function UserManagement() {
     const [isLoading, setIsLoading] = useState(false)
     const [notification, setNotification] = useState<NotificationState | null>(null)
     const [passwordLoading, setPasswordLoading] = useState(false)
+    const [settingsLoading, setSettingsLoading] = useState(false)
+    const [keyLoading, setKeyLoading] = useState(false)
+    const [logRetentionDays, setLogRetentionDays] = useState<number | string>(30)
+    const [logSize, setLogSize] = useState<number | string>(1000000)
+    const [compressionEnabled, setCompressionEnabled] = useState(false)
+    const [encryptionEnabled, setEncryptionEnabled] = useState(false)
+    const [encryptionKeyConfigured, setEncryptionKeyConfigured] = useState(false)
+    const [keyFingerprint, setKeyFingerprint] = useState<string | null>(null)
+    const [gotifyEnabled, setGotifyEnabled] = useState(false)
+    const [gotifyUrl, setGotifyUrl] = useState("")
+    const [gotifyToken, setGotifyToken] = useState("")
+    const [gotifyTokenConfigured, setGotifyTokenConfigured] = useState(false)
     
     // Password form state
     const [oldPassword, setOldPassword] = useState("")
@@ -192,6 +221,20 @@ export function UserManagement() {
     useEffect(() => {
         loadUserInfo()
     }, [])
+
+    const applySettings = (settings?: UserSettings) => {
+        if (!settings) return
+        setLogRetentionDays(settings.log_retention_period_d)
+        setLogSize(settings.log_size)
+        setCompressionEnabled(settings.compression_enabled)
+        setEncryptionEnabled(settings.encryption_enabled)
+        setEncryptionKeyConfigured(settings.encryption_key_configured)
+        setKeyFingerprint(settings.key_fingerprint || null)
+        setGotifyEnabled(settings.gotify_enabled)
+        setGotifyUrl(settings.gotify_url || "")
+        setGotifyTokenConfigured(settings.gotify_token_configured)
+        setGotifyToken("")
+    }
 
     const loadUserInfo = async () => {
         setIsLoading(true)
@@ -206,6 +249,7 @@ export function UserManagement() {
 
             const info = response?.data
             setUserInfo(info)
+            applySettings(info?.settings)
         } catch (err) {
             setNotification({ message: "Failed to load user information", statusCode: 500 })
             console.error("Error loading user info:", err)
@@ -295,6 +339,104 @@ export function UserManagement() {
         }
     }
 
+    const arrayBufferToPem = (buffer: ArrayBuffer, label: string) => {
+        const bytes = new Uint8Array(buffer)
+        let binary = ""
+        bytes.forEach((byte) => {
+            binary += String.fromCharCode(byte)
+        })
+        const base64 = window.btoa(binary)
+        const body = base64.match(/.{1,64}/g)?.join("\n") || base64
+        return `-----BEGIN ${label}-----\n${body}\n-----END ${label}-----`
+    }
+
+    const downloadPrivateKey = (privateKeyPem: string) => {
+        const blob = new Blob([privateKeyPem], { type: "application/x-pem-file" })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.download = `backup-private-key-${userInfo?.tenant_id || "tenant"}.pem`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+    }
+
+    const handleGenerateEncryptionKey = async () => {
+        setKeyLoading(true)
+        setNotification(null)
+        try {
+            const keyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "RSA-OAEP",
+                    modulusLength: 4096,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: "SHA-256",
+                },
+                true,
+                ["encrypt", "decrypt"]
+            )
+            const publicKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey)
+            const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+            const publicKeyPem = arrayBufferToPem(publicKey, "PUBLIC KEY")
+            const privateKeyPem = arrayBufferToPem(privateKey, "PRIVATE KEY")
+
+            const response = await post("users/encryption-key", { public_key: publicKeyPem })
+            if (response.status >= 400) {
+                setNotification({ message: response.detail || "Failed to save public key", statusCode: response.status })
+                return
+            }
+
+            downloadPrivateKey(privateKeyPem)
+            setEncryptionKeyConfigured(true)
+            setKeyFingerprint(response?.data?.key_fingerprint || null)
+            setNotification({ message: "Encryption key generated. Store the downloaded private key safely.", statusCode: response.status })
+        } catch (err) {
+            setNotification({ message: "Failed to generate encryption key", statusCode: 500 })
+            console.error(err)
+        } finally {
+            setKeyLoading(false)
+        }
+    }
+
+    const handleSaveSettings = async () => {
+        const retentionDays = Number(logRetentionDays)
+        const maxLogRows = Number(logSize)
+        if (!Number.isFinite(retentionDays) || retentionDays < 1 || !Number.isFinite(maxLogRows) || maxLogRows < 1) {
+            setNotification({ message: "Log retention and max log rows must be positive numbers", statusCode: 400 })
+            return
+        }
+
+        setSettingsLoading(true)
+        setNotification(null)
+        try {
+            const response = await post("users/settings", {
+                log_retention_period_d: retentionDays,
+                log_size: maxLogRows,
+                compression_enabled: compressionEnabled,
+                encryption_enabled: encryptionEnabled,
+                gotify_enabled: gotifyEnabled,
+                gotify_url: gotifyUrl || null,
+                gotify_token: gotifyToken || null,
+            })
+
+            if (response.status >= 400) {
+                setNotification({ message: response.detail || "Failed to save settings", statusCode: response.status })
+                return
+            }
+
+            setNotification({ message: response.message || "Settings saved successfully", statusCode: response.status })
+            setGotifyToken("")
+            if (gotifyToken) setGotifyTokenConfigured(true)
+            await loadUserInfo()
+        } catch (err) {
+            setNotification({ message: "Failed to save settings", statusCode: 500 })
+            console.error(err)
+        } finally {
+            setSettingsLoading(false)
+        }
+    }
+
     return (
         <div style={{ padding: 20 }}>
             <Group mb={20} justify="space-between">
@@ -360,6 +502,90 @@ export function UserManagement() {
                                             {colorScheme === "dark" ? "Light mode" : "Black mode"}
                                         </Button>
                                     </Group>
+                                </Stack>
+                            </Paper>
+
+                            <Paper p="md" withBorder>
+                                <Stack gap="md">
+                                    <div>
+                                        <Text fw={600} size="sm">Operational Settings</Text>
+                                        <Text size="xs" c="dimmed">
+                                            Tenant-wide defaults for log cleanup, backup artifacts, encryption, and Gotify notifications.
+                                        </Text>
+                                    </div>
+
+                                    <Group grow align="flex-start">
+                                        <NumberInput
+                                            label="Log retention days"
+                                            min={1}
+                                            value={logRetentionDays}
+                                            onChange={setLogRetentionDays}
+                                        />
+                                        <NumberInput
+                                            label="Max stored log rows"
+                                            min={1}
+                                            thousandSeparator=","
+                                            value={logSize}
+                                            onChange={setLogSize}
+                                        />
+                                    </Group>
+
+                                    <Divider />
+
+                                    <Switch
+                                        label="Compress backups before upload"
+                                        checked={compressionEnabled}
+                                        onChange={(event) => setCompressionEnabled(event.currentTarget.checked)}
+                                    />
+
+                                    <Group justify="space-between" align="flex-start">
+                                        <Switch
+                                            label="Encrypt backups"
+                                            description={encryptionKeyConfigured ? `Public key configured${keyFingerprint ? `: ${keyFingerprint.slice(0, 12)}...` : ""}` : "Generate a key before enabling encryption."}
+                                            checked={encryptionEnabled}
+                                            onChange={(event) => setEncryptionEnabled(event.currentTarget.checked)}
+                                        />
+                                        <Button
+                                            variant="light"
+                                            onClick={handleGenerateEncryptionKey}
+                                            loading={keyLoading}
+                                        >
+                                            Generate encryption key
+                                        </Button>
+                                    </Group>
+
+                                    <Alert color="yellow" title="Private key warning">
+                                        The private key is downloaded only during generation and is never stored on the server. You will need it to restore encrypted backups.
+                                    </Alert>
+
+                                    <Divider />
+
+                                    <Switch
+                                        label="Enable Gotify notifications"
+                                        description="Notifications are sent on backup failure, restore failure, and restore success."
+                                        checked={gotifyEnabled}
+                                        onChange={(event) => setGotifyEnabled(event.currentTarget.checked)}
+                                    />
+                                    {gotifyEnabled && (
+                                        <Group grow align="flex-start">
+                                            <TextInput
+                                                label="Gotify URL"
+                                                placeholder="https://gotify.example.com"
+                                                value={gotifyUrl}
+                                                onChange={(event) => setGotifyUrl(event.currentTarget.value)}
+                                            />
+                                            <PasswordInput
+                                                label="Gotify token"
+                                                placeholder={gotifyTokenConfigured ? "Configured - enter to replace" : "Enter token"}
+                                                value={gotifyToken}
+                                                onChange={(event) => setGotifyToken(event.currentTarget.value)}
+                                            />
+                                        </Group>
+                                    )}
+
+                                    <Button onClick={handleSaveSettings} loading={settingsLoading}>
+                                        Save Settings
+                                    </Button>
                                 </Stack>
                             </Paper>
 

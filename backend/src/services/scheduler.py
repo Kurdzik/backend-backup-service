@@ -1,7 +1,7 @@
 from celery.beat import Scheduler
 from celery.schedules import crontab
 from sqlmodel import select, Session
-from src.models import Schedule
+from src.models import Schedule, TenantLogSettings
 from src.middleware import engine
 from kombu import Connection
 import threading
@@ -58,6 +58,25 @@ def load_schedules_from_db():
                     backup_source_id=schedule.source_id,
                     backup_destination_id=schedule.destination_id,
                     schedule_cron=schedule.schedule,
+                    persist_db=True,
+                )
+
+        log_settings = db_session.exec(select(TenantLogSettings)).all()
+        for settings in log_settings:
+            schedule_dict[f"log-cleanup-{settings.tenant_id}"] = {
+                "task": "src.services.worker.cleanup_old_logs",
+                "schedule": crontab(minute="0", hour="3"),
+                "kwargs": {
+                    "tenant_id": settings.tenant_id,
+                    "log_retention_period_d": settings.log_retention_period_d,
+                    "log_size": settings.log_size,
+                },
+            }
+            with tenant_context(tenant_id=settings.tenant_id, service_name="scheduler"):
+                logger.info(
+                    "log_cleanup_schedule_loaded",
+                    log_retention_period_d=settings.log_retention_period_d,
+                    log_size=settings.log_size,
                     persist_db=True,
                 )
     return schedule_dict

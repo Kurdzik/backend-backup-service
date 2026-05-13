@@ -89,3 +89,39 @@ class Logs(SQLModel, table=True):
     service_name: str = Field(index=True)
     log: str
     timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class TenantLogSettings(SQLModel, table=True):
+    __tablename__ = "tenant_log_settings"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: str = Field(unique=True, index=True)
+    log_retention_period_d: int = Field(default=30)
+    log_size: int = Field(default=1_000_000)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class TenantBackupSettings(SQLModel, table=True):
+    __tablename__ = "tenant_backup_settings"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: str = Field(unique=True, index=True)
+    compression_enabled: bool = Field(default=False)
+    encryption_enabled: bool = Field(default=False)
+    gotify_enabled: bool = Field(default=False)
+    gotify_url: Optional[str] = None
+    gotify_token: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class TenantEncryptionKey(SQLModel, table=True):
+    __tablename__ = "tenant_encryption_keys"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: str = Field(unique=True, index=True)
+    public_key: str
+    key_fingerprint: str = Field(index=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)

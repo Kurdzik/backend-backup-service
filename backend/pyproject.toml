@@ -9,6 +9,7 @@ dependencies = [
     "autoflake>=2.3.1",
     "boto3>=1.41.5",
     "celery>=5.5.3",
+    "cryptography>=45.0.0",
     "db-sqlite3>=0.0.1",
     "docker>=7.1.0",
     "elasticsearch==8",

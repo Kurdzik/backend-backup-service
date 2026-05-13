@@ -32,10 +32,25 @@ class ResetPasswordRequest(BaseModel):
     new_password2: str
 
 
+class UpdateUserSettingsRequest(BaseModel):
+    log_retention_period_d: int = Field(ge=1)
+    log_size: int = Field(ge=1)
+    compression_enabled: bool
+    encryption_enabled: bool
+    gotify_enabled: bool
+    gotify_url: Optional[str] = None
+    gotify_token: Optional[str] = None
+
+
+class SaveEncryptionKeyRequest(BaseModel):
+    public_key: str
+
+
 class RestoreBackupRequest(BaseModel):
     backup_source_id: int
     backup_destination_id: int
     backup_path: str
+    private_key: Optional[str] = None
 
 
 class AddBackupSourceRequest(BaseModel):
